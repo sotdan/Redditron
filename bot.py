@@ -2,7 +2,7 @@
 
 
 #import twitter
-import random, cPickle, socket, re, time, datetime, sys
+import random, cPickle, socket, re, time, datetime, sys, ConfigParser
 from threading import Thread
 from threading import Timer
 from urllib import urlopen, urlencode
@@ -113,6 +113,9 @@ def respondtomsg(source, sender, msg):
                 responded = True
             elif 'bobsmantra' in msg:
                 bobsmantra(source, sender, msg)
+                responded = True
+            elif 'reloadconfig' in msg:
+                reloadconfig(source)
                 responded = True
             elif 'genmantra' in msg:
                 genmantra(source, sender, msg)
@@ -343,10 +346,8 @@ def addredditry(source, msgpart, sender):
         if len(msg) == 5:
             tag=msg[1]
             response=msg[3]
-            #response=response.replace("'","\\'")
-            if CONNECTED:
-                logger(strftime("%H:%M:%S"))
-                logger('adding: "'+response+'" with the tag '+tag)
+            logger(strftime("%H:%M:%S"))
+            logger('adding: "'+response+'" with the tag '+tag)
             if tag in RESPONSES:
                 RESPONSES[tag] = RESPONSES[tag].append(response)
             else:
@@ -363,9 +364,8 @@ def randomresponse(source):
     result=RESPONSES.items()
     response = random.choice(result)
     response = random.choice(response[1])
-    if CONNECTED:
-        logger(strftime("%H:%M:%S"))
-        logger('posting random response: '+response)
+    logger(strftime("%H:%M:%S"))
+    logger('posting random response: '+response)
     postresponse(source,response)
 
 def pickresponse(msg, source):
@@ -376,9 +376,8 @@ def pickresponse(msg, source):
         if k in msg:
             responselist = RESPONSES[k]
             response = random.choice(responselist)
-            if CONNECTED:
-                logger(strftime("%H:%M:%S"))
-                logger(k+' detected in '+source+' responding with: '+response)
+            logger(strftime("%H:%M:%S"))
+            logger(k+' detected in '+source+' responding with: '+response)
             responded = True
             postresponse(source, response)
             sleepafterresponse()
@@ -428,21 +427,24 @@ def say(chan, msg):
         IRC.send('PRIVMSG '+chan+' :'+msg+'\r\n')
     else: print msg
 
+def reloadconfig(source):
 
 def loadconfig(config):
+    config = ConfigParser.ConfigParser()
+    config.read(CONFIGFILE)
     global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS
     global FALLBACKR, QFALLBACKR, BOTRESPONSES, STFURESPONSES
-    print strftime("%H:%M:%S")
+    logger(strftime("%H:%M:%S"))
     NICK = config.get('botconfig', 'nick')
-    print 'nick:',NICK
+    logger('nick: '+NICK)
     WAITFACTOR = config.getint('botconfig', 'waitfactor')
-    print 'waitfactor:',str(WAITFACTOR)
+    logger('waitfactor: '+str(WAITFACTOR))
     SLEEPTIME = config.getint('botconfig','sleeptime')
-    print 'sleeptime:',str(SLEEPTIME)
+    logger('sleeptime: '+str(SLEEPTIME))
     FREESPEECH = config.getboolean('botconfig','freespeech')
-    print 'freespeech:',str(FREESPEECH)
+    logger('freespeech: '+str(FREESPEECH))
     ADMINS=config.get('botconfig','admins').split(',')
-    print 'importing responses from conf file'
+    logger('importing responses from conf file')
     def readlistfromconf(a):
         rlist = config.items(a)
         result = []
@@ -454,7 +456,7 @@ def loadconfig(config):
     QFALLBACKR = readlistfromconf('fallbackresponsesq')
     BOTRESPONSES = readlistfromconf('botresponses')
     STFURESPONSES = readlistfromconf('stfuresponses')
-    print 'done'
+    logger('done')
 
     servers = config.get('botconfig','servers').split(',')
     server = servers[0]
@@ -470,10 +472,10 @@ def logger(msg):
     if CONNECTED:
         print msg
 
-def connect(config, verbose):
+def connect(verbose):
     global CONNECTED, IRC
 
-    port,host,ident,realname,nspassword,chanlist = loadconfig(config)
+    port,host,ident,realname,nspassword,chanlist = loadconfig(source)
 
     IRC=socket.socket(socket.AF_INET, socket.SOCK_STREAM) #Create the socket
 
