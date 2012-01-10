@@ -8,6 +8,7 @@ from threading import Timer
 from urllib import urlopen, urlencode
 from time import strftime
 
+CONFIGFILE = sys.path[0]+"/redditronrc"
 RESPONSEFILE = sys.path[0]+"/responses.dat"
 output = open(RESPONSEFILE, 'rb')
 try: RESPONSES = cPickle.load(output)
@@ -428,8 +429,9 @@ def say(chan, msg):
     else: print msg
 
 def reloadconfig(source):
-
-def loadconfig(config):
+    loadconfig()
+    say(source, 'Reloaded.')
+def loadconfig():
     config = ConfigParser.ConfigParser()
     config.read(CONFIGFILE)
     global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS
@@ -475,7 +477,7 @@ def logger(msg):
 def connect(verbose):
     global CONNECTED, IRC
 
-    port,host,ident,realname,nspassword,chanlist = loadconfig(source)
+    port,host,ident,realname,nspassword,chanlist = loadconfig()
 
     IRC=socket.socket(socket.AF_INET, socket.SOCK_STREAM) #Create the socket
 
