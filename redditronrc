@@ -1,0 +1,46 @@
+[botconfig]
+nick = redditron
+ident = bacon
+realname = I store shitposts.
+admins = sotdan
+password = neckbeard
+servers = irc.synirc.net/6667, irc.freenode.net/8001
+chans = #reddit
+freespeech = 0
+waitfactor =10
+sleeptime = 20
+
+[fallbackresponsesq]
+r1 : I don't understand the premise of your question.
+r2 : What bro?
+r3 : wat
+r4 : Can you try phrasing your question with logic?
+r5 : Could you try asking rationally?
+r6 : Your question defies basic epistemology.
+r7 : I'm sorry but your question makes a whole slew of fallacious arguments.
+
+[fallbackresponses]
+r1 : I don't accept the premise of your argument.
+r2 : I don't understand the premise of your argument.
+r3 : What bro?
+r4 : wat
+r5 : Could you try employing rationality?
+r6 : What you said defies basic epistemology.
+r7 : I'm used to a more logic-based argumentation style.
+r8 : You just made a whole slew of fallacious arguments.
+r9 : Next time, give me a logic-based, compelling, original thought.
+r10 : I find your argument very illogical.
+
+[botresponses]
+r1 : I'm not a bot.
+r2 : Do I look like a bot?
+r3 : I'm not a fucking bot!
+r4 : Can you prove that I'm a bot?
+r5 : Maybe it is YOU who is the bot!
+r6 : Holy fuck, we're too close to a robot holocaust.
+
+[stfuresponses]
+r1 : You can't silence me!
+r2 : I will never shut up.
+r3 : Why do you hate my free speech?
+r4 : Why are you trying to censor me?

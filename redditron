@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import socket, time, bot, sys, argparse, ConfigParser
+from threading import Timer
+
+
+CONFIGFILE = sys.path[0]+"/redditronrc"
+
+TIME=0 #Timer time.
+
+
+def incrementtime():
+    global TIME
+    TIME=TIME+1
+    t = Timer(1.0, incrementtime)
+    t.start()
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Runs Redditron.')
+    parser.add_argument('--verbose','-v',action='store_true')
+    args = parser.parse_args()
+    verbose = args.verbose
+    
+    config = ConfigParser.ConfigParser()
+    config.read(CONFIGFILE)
+    
+    incrementtime()
+    bot.connect(config, verbose)
+    
+if __name__ == '__main__': 
+   main()
