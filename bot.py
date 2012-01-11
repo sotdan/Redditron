@@ -2,17 +2,13 @@
 
 
 #import twitter
-import random, cPickle, socket, re, time, datetime, sys, ConfigParser
+import random, responses, socket, re, time, datetime, sys, ConfigParser
 from threading import Thread
 from threading import Timer
 from urllib import urlopen, urlencode
 from time import strftime
 
-CONFIGFILE = sys.path[0]+"/redditronrc"
-RESPONSEFILE = sys.path[0]+"/responses.dat"
-output = open(RESPONSEFILE, 'rb')
-try: RESPONSES = cPickle.load(output)
-except: RESPONSES = {}
+RESPONSES = responses.Responses()
 CONNECTED= False
 SLEEPING = False
 NICK=""
@@ -325,16 +321,11 @@ def posttopastebin(msg):
     return rawlink
 
 def getkeys(source):
-    a=RESPONSES.keys()
-    link = posttopastebin(a)
+    link = posttopastebin(RESPONSES.getkeys())
     say(source, link)
 
 def getdbstats(source):
-    tags=len(RESPONSES.keys())
-    quotes = 0
-    for x in RESPONSES.values():
-        quotes=quotes+len(x)
-    say(source, 'There are '+str(tags)+' tags and '+str(quotes)+' quotes.')
+    print RESPONSES.stats()
 
 def getuptime(source):
     global TIME
@@ -349,12 +340,7 @@ def addredditry(source, msgpart, sender):
             response=msg[3]
             logger(strftime("%H:%M:%S"))
             logger('adding: "'+response+'" with the tag '+tag)
-            if tag in RESPONSES:
-                RESPONSES[tag] = RESPONSES[tag].append(response)
-            else:
-                RESPONSES[tag] = ([response])
-            output = open(RESPONSEFILE, 'wb')
-            cPickle.dump(RESPONSES, output)
+            RESPONSES.add(tag,response)
             say(source, 'Added!')
         else:
             say(source, 'Format: '+NICK+': add "tag" "quote"')
@@ -362,30 +348,23 @@ def addredditry(source, msgpart, sender):
         say(source, 'Format: '+NICK+': add "tag" "quote"')
 
 def randomresponse(source):
-    result=RESPONSES.items()
-    response = random.choice(result)
-    response = random.choice(response[1])
+    RESPONSES.randomquote()
     logger(strftime("%H:%M:%S"))
     logger('posting random response: '+response)
     postresponse(source,response)
 
 def pickresponse(msg, source):
-    global RESPONSES
-    keys = RESPONSES.keys()
-    responded = False
-    for k in keys:
-        if k in msg:
-            responselist = RESPONSES[k]
-            response = random.choice(responselist)
-            logger(strftime("%H:%M:%S"))
-            logger(k+' detected in '+source+' responding with: '+response)
-            responded = True
-            postresponse(source, response)
-            sleepafterresponse()
-            break
-    return responded
+    logmsg, response = RESPONSES.pick(msg)
+    logger(strftime("%H:%M:%S"))
+    logger(logmsg)
+    if not response =="":
+        postresponse(source, response)
+        sleepafterresponse()
+        return True
+    return False
             
 def postresponse(source, response): 
+    '''splits the quote into several lines'''
     if len(response) > 150 and response.count('.')>1:
         l = response.split('. ',)
         while '' in l:
@@ -432,10 +411,12 @@ def reloadconfig(source):
     loadconfig()
     say(source, 'Reloaded.')
 def loadconfig():
-    config = ConfigParser.ConfigParser()
-    config.read(CONFIGFILE)
-    global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS
+    global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS, RESPONSES
     global FALLBACKR, QFALLBACKR, BOTRESPONSES, STFURESPONSES
+    configfile = sys.path[0]+"/redditronrc"
+
+    config = ConfigParser.ConfigParser()
+    config.read(configfile)
     logger(strftime("%H:%M:%S"))
     NICK = config.get('botconfig', 'nick')
     logger('nick: '+NICK)
@@ -514,10 +495,7 @@ def main():
     '''Starts a Redditron Command Line Session
     '''
     print 'Welcome to CLI Redditron'
-    import ConfigParser
-    config = ConfigParser.ConfigParser()
-    config.read(sys.path[0]+"/redditronrc")
-    loadconfig(config)
+    loadconfig()
     while True:
         msg= raw_input('>>')
         respondtomsg(NICK,"",msg)
