@@ -2,13 +2,17 @@
 
 
 #import twitter
-import random, responses, socket, re, time, datetime, sys, ConfigParser
+import random, cPickle, socket, re, time, datetime, sys, ConfigParser
 from threading import Thread
 from threading import Timer
 from urllib import urlopen, urlencode
 from time import strftime
 
-RESPONSES = responses.Responses()
+CONFIGFILE = sys.path[0]+"/redditronrc"
+RESPONSEFILE = sys.path[0]+"/responses.dat"
+output = open(RESPONSEFILE, 'rb')
+try: RESPONSES = cPickle.load(output)
+except: RESPONSES = {}
 CONNECTED= False
 SLEEPING = False
 NICK=""
@@ -54,7 +58,7 @@ def respondtomsg(source, sender, msg):
                 setwaitfactor(source, msg)
                 responded = True
             elif 'bot' in msg or 'help' in msg:
-                detected(source)
+                detected(source, msg)
                 responded = True
             elif 'changemode' in msg:
                 changemode(source)
@@ -63,20 +67,17 @@ def respondtomsg(source, sender, msg):
                 stfu(source, msg)
                 responded = True
             if SLEEPING == False and responded == False:
-                responded = detecttrigger(msg.lower(), source)
+                responded = pickresponse(msg.lower(), source)
             if responded == False:
                 fallback(source, sender, msg)
                 responded = True
         else:
             if SLEEPING == False:
-                responded = detecttrigger(msg.lower(), source)
+                responded = pickresponse(msg.lower(), source)
     else:
         if re.match(NICK.lower()+'(:|,|\ )', msg.lower()):
             if 'addadmin' in msg:
                 addadmin(source, msg, sender)
-                responded = True
-            elif 'addquote' in msg:
-                addredditry(source, msg, sender)
                 responded = True
             elif 'joinchan' in msg:
                 joinchan(source, msg, sender)
@@ -96,14 +97,14 @@ def respondtomsg(source, sender, msg):
             elif 'bot' in msg or 'help' in msg:
                 detected(source)
                 responded = True
+            elif 'addquote' in msg:
+                addredditry(source, msg, sender)
+                responded = True
             elif 'uptime' in msg:
                 getuptime(source)
                 responded = True
             elif 'getstats' in msg:
                 getdbstats(source)
-                responded = True
-            elif 'getquotes' in msg:
-                getquotes(source,msg)
                 responded = True
             elif 'twitter' in msg:
                 getrandomtwitterpost(source, msg)
@@ -122,7 +123,7 @@ def respondtomsg(source, sender, msg):
                 responded = True
             else:
                 if responded == False:
-                    responded = detecttrigger(msg.lower(), source)
+                    responded = pickresponse(msg.lower(), source)
                 if responded == False:
                     fallback(source, sender, msg)
                     responded = True
@@ -137,7 +138,7 @@ def respondtomsg(source, sender, msg):
 
 
 def fallback(source, sender, msg):
-    if source == sender: #check if it's a PM
+    if source == sender: #ifpick it's a PM
         if msg.rstrip().endswith('?'):
             say(source, random.choice(QFALLBACKR))
         else:
@@ -167,8 +168,7 @@ def changenick(source, msg, sender):
     if msg[1] == 'changenick':
         if sender in ADMINS:
             if len(msg) ==3:
-                logger(strftime("%H:%M:%S"))
-                logger("changing nick to "+msg[2])
+                logger(strftime("%H:%M:%S")+" changing nick to "+msg[2])
                 IRC.send('NICK '+msg[2]+'\r\n')
                 NICK = msg[2] 		
             else:
@@ -181,8 +181,7 @@ def partchan(source, msg, sender):
     if msg[1] == 'partchan':
         if sender in ADMINS:
             if len(msg) ==3:
-                logger(strftime("%H:%M:%S"))
-                logger("parting "+msg[2])
+                logger(strftime("%H:%M:%S")+" - parting "+msg[2])
                 IRC.send('PART '+msg[2]+'\r\n')
             else:
                 say(source, 'yer doin it rong')
@@ -194,8 +193,7 @@ def joinchan(source, msg, sender):
     if msg[1] == 'joinchan':
         if sender in ADMINS:
             if len(msg) ==3:
-                logger(strftime("%H:%M:%S"))
-                logger("joining "+msg[2])
+                logger(strftime("%H:%M:%S")+" - joining "+msg[2])
                 IRC.send('JOIN '+msg[2]+'\r\n')
             else:
                 say(source, 'yer doin it rong')
@@ -229,7 +227,7 @@ def genmantra(source, sender, msg):
             m=m.replace('white', y.lower())
             m=m.replace('black', y.lower())
             m=m.replace('BLACK', y.upper())
-            result+=m+'\r\n'
+            result=result+'\r\n'+m+'\r\n'
         link = posttopastebin(result)
         say(source, link)
     else:
@@ -260,7 +258,7 @@ def bobsmantra(source, sender, msg):
                 m=m.replace('black', y.lower())
                 m=m.replace('BLACK', y.upper())
             waitfor=len(m)/(WAITFACTOR)
-            logger("waiting for "+str(waitfor))
+            logger("waiting for "+waitfor)
             time.sleep(waitfor)
             say(source, m)
     else:
@@ -278,9 +276,8 @@ def setsleeptime(source, msgpart):
     sleeptimecmd = msgpart.split()
     if sleeptimecmd[2].isdigit():
         SLEEPTIME = int(sleeptimecmd[2])
-        a='Sleeptime is now '+sleeptimecmd[2]+' second(s).'
-        logger(a)
-        say(source,a)
+        logger('sleeptime is now '+sleeptimecmd[2]+' second(s).')
+        say(source,'Sleeptime is now '+sleeptimecmd[2]+' second(s).')
 
 def setwaitfactor(source, msgpart):
     msg = msgpart.split()
@@ -288,21 +285,6 @@ def setwaitfactor(source, msgpart):
          WAITFACTOR = int(msg[2])
          logger('waitfactor is now '+msg[2]+' second(s).')
          say(source,'Waitfactor is now '+msg[2]+' second(s).')
-
-def getquotes(source, msg):
-    msg = msg.split()
-    if len(msg) ==2:
-        if msg[1]=='getquotes':
-            say(source,'Working...')
-            say(source,posttopastebin(RESPONSES.getstring()))
-    elif len(msg) >= 3:
-        msg,tag = msg[2:],''
-        for k in msg:
-            tag+=k+' '
-        a,b = RESPONSES.getresponses(tag.rstrip())
-        if a == True:
-            say(source,posttopastebin(b))
-        else: say(source,b)
 
 def getrandomtwitterpost(source, msg):
     cmd = msg.split()
@@ -343,11 +325,16 @@ def posttopastebin(msg):
     return rawlink
 
 def getkeys(source):
-    link = posttopastebin(RESPONSES.getkeys())
+    a=RESPONSES.keys()
+    link = posttopastebin(a)
     say(source, link)
 
 def getdbstats(source):
-    say(source, RESPONSES.stats())
+    tags=len(RESPONSES.keys())
+    quotes = 0
+    for x in RESPONSES.values():
+        quotes=quotes+len(x)
+    say(source, 'There are '+str(tags)+' tags and '+str(quotes)+' quotes.')
 
 def getuptime(source):
     global TIME
@@ -361,72 +348,44 @@ def addredditry(source, msgpart, sender):
             tag=msg[1]
             response=msg[3]
             logger(strftime("%H:%M:%S"))
-            c=RESPONSES.add(tag,response)
-            if c==0:
-                say(source,'Error.')
-                logger('error while adding quote')
-            elif c==1: 
-                say(source, 'Added!')
-                RESPONSES.savetofile()
-                logger("added '%s' with the tag %s" % response,tag)
-            elif c==2:
-                msg='The exact quote already exists.'
-                say(source,msg)
-                logger(msg)
+            logger('adding: "'+response+'" with the tag '+tag)
+            if tag in RESPONSES:
+                RESPONSES[tag] = RESPONSES[tag].append(response)
+            else:
+                RESPONSES[tag] = ([response])
+            output = open(RESPONSEFILE, 'wb')
+            cPickle.dump(RESPONSES, output)
+            say(source, 'Added!')
         else:
-            say(source, 'Format: '+NICK+': addquote "tag" "quote"')
+            say(source, 'Format: '+NICK+': add "tag" "quote"')
     else:
-        say(source, 'Format: '+NICK+': addquote "tag" "quote"')
+        say(source, 'Format: '+NICK+': add "tag" "quote"')
 
 def randomresponse(source):
-    response=RESPONSES.randomquote()
+    result=RESPONSES.items()
+    response = random.choice(result)
+    response = random.choice(response[1])
     logger(strftime("%H:%M:%S"))
     logger('posting random response: '+response)
     postresponse(source,response)
 
-def detecttrigger(msg, source):
-    msgm,msg = msg.split(),''
-    for k in msgm[1:]:
-        msg+=k+' ' #this removes the nick from msg
-    detected, response = RESPONSES.detect(msg.strip())
-    if response == 'error':
-        logger(response)
-    else:
-        if len(detected)>0:
+def pickresponse(msg, source):
+    global RESPONSES
+    keys = RESPONSES.keys()
+    responded = False
+    for k in keys:
+        if k in msg:
+            responselist = RESPONSES[k]
+            response = random.choice(responselist)
             logger(strftime("%H:%M:%S"))
-            logger('detected: '+str(detected))
-            logger('response: '+response)
+            logger(k+' detected in '+source+' responding with: '+response)
+            responded = True
             postresponse(source, response)
             sleepafterresponse()
-            return True
-    return False
-
-def postresponse(source,response):
-    '''splits the string into several lines and then posts it
-    '''
-    def splitintwo(response,lit):
-        r=response.split(lit)
-        response=''
-        if len(r)>2:
-            for l in r[:len(r)-2]:
-                response+=l+lit
-        response+=r[len(r)-2]+lit.rstrip()
-        postresponse(source,response)
-        postresponse(source,r[len(r)-1])
-    if len(response) > 150:
-        if '\n' in response:
-            splitintwo(response, '\n')
-        elif '? ' in response:
-            splitintwo(response, '? ')
-        elif '.. ' in response:
-            splitintwo(response, '.. ')
-        elif '. ' in response:
-            splitintwo(response, '. ')
-        else: say(source,response)
-    else: say(source,response)
-
-def postresponse_old(source, response): 
-    '''splits the quote into several lines'''
+            break
+    return responded
+            
+def postresponse(source, response): 
     if len(response) > 150 and response.count('.')>1:
         l = response.split('. ',)
         while '' in l:
@@ -473,23 +432,21 @@ def reloadconfig(source):
     loadconfig()
     say(source, 'Reloaded.')
 def loadconfig():
-    global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS, RESPONSES
-    global FALLBACKR, QFALLBACKR, BOTRESPONSES, STFURESPONSES
-    configfile = sys.path[0]+"/redditronrc"
-
     config = ConfigParser.ConfigParser()
-    config.read(configfile)
-    print strftime("%H:%M:%S")
+    config.read(CONFIGFILE)
+    global NICK, WAITFACTOR, SLEEPTIME, FREESPEECH, ADMINS
+    global FALLBACKR, QFALLBACKR, BOTRESPONSES, STFURESPONSES
+    logger(strftime("%H:%M:%S"))
     NICK = config.get('botconfig', 'nick')
     logger('nick: '+NICK)
     WAITFACTOR = config.getint('botconfig', 'waitfactor')
-    print 'waitfactor: '+str(WAITFACTOR)
+    logger('waitfactor: '+str(WAITFACTOR))
     SLEEPTIME = config.getint('botconfig','sleeptime')
-    print 'sleeptime: '+str(SLEEPTIME)
+    logger('sleeptime: '+str(SLEEPTIME))
     FREESPEECH = config.getboolean('botconfig','freespeech')
-    print 'freespeech: '+str(FREESPEECH)
+    logger('freespeech: '+str(FREESPEECH))
     ADMINS=config.get('botconfig','admins').split(',')
-    print 'importing responses from conf file'
+    logger('importing responses from conf file')
     def readlistfromconf(a):
         rlist = config.items(a)
         result = []
@@ -501,7 +458,7 @@ def loadconfig():
     QFALLBACKR = readlistfromconf('fallbackresponsesq')
     BOTRESPONSES = readlistfromconf('botresponses')
     STFURESPONSES = readlistfromconf('stfuresponses')
-    print 'done'
+    logger('done')
 
     servers = config.get('botconfig','servers').split(',')
     server = servers[0]
@@ -553,31 +510,17 @@ def connect(verbose):
         elif line.find('PRIVMSG')!=-1: #Call a parsing function
             parsemsg(line)
 
-def testallresponses():
-    l = RESPONSES.getresponseslist()
-    errors,errcounter='',0
-    for r in l:
-        try: postresponse("",r)
-        except: 
-            errors+= r+'\n'+str(sys.exc_info())+'\n\n'
-            errcounter+=1
-    print errors
-    print 'errors: '+str(errcounter)
-
 def main():
     '''Starts a Redditron Command Line Session
     '''
     print 'Welcome to CLI Redditron'
-    loadconfig()
+    import ConfigParser
+    config = ConfigParser.ConfigParser()
+    config.read(sys.path[0]+"/redditronrc")
+    loadconfig(config)
     while True:
         msg= raw_input('>>')
-        if msg == u'q':
-            sys.exit("Bye")
-        elif msg == u'r':
-            randomresponse('')
-        elif msg == u'test':
-            testallresponses()
-        else:respondtomsg(NICK,"",msg)
+        respondtomsg(NICK,"",msg)
 
 if __name__ == '__main__': 
    main()
