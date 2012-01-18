@@ -72,11 +72,7 @@ def search(args):
     if len(args) == 0:
         print 'needs an argument'
     else:
-        lit=''
-        if len(args)>1:
-            for arg in args[:len(args)-1]:
-                lit+=arg+' '
-        lit+=args[len(args)-1]
+        lit=' '.join(args)
         result=RESPONSES.searchdb(lit)
         print 'found %s matches' % len(result)
         for x in result:

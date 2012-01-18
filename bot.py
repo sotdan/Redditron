@@ -296,9 +296,8 @@ def getquotes(source, msg):
             say(source,'Working...')
             say(source,posttopastebin(RESPONSES.getstring()))
     elif len(msg) >= 3:
-        msg,tag = msg[2:],''
-        for k in msg:
-            tag+=k+' '
+        msg = msg[2:]
+        tag = ' '.join(msg)
         a,b = RESPONSES.getresponses(tag.rstrip())
         if a == True:
             say(source,posttopastebin(b))
@@ -368,7 +367,7 @@ def addredditry(source, msgpart, sender):
             elif c==1: 
                 say(source, 'Added!')
                 RESPONSES.savetofile()
-                logger("added '%s' with the tag %s" % response,tag)
+                logger("added:\n"+response+'\nwith the tag:\n'+tag)
             elif c==2:
                 msg='The exact quote already exists.'
                 say(source,msg)
@@ -385,9 +384,8 @@ def randomresponse(source):
     postresponse(source,response)
 
 def detecttrigger(msg, source):
-    msgm,msg = msg.split(),''
-    for k in msgm[1:]:
-        msg+=k+' ' #this removes the nick from msg
+    msgm = msg.split()
+    msg = ' '.join(msgm[1:])#this removes the nick from msg
     detected, response = RESPONSES.detect(msg.strip())
     if response == 'error':
         logger(response)
@@ -406,6 +404,24 @@ def postresponse(source,response):
     '''
     def splitintwo(response,lit):
         r=response.split(lit)
+        postresponse(source, lit.join(r[:len(r)/2])+lit.strip())
+        postresponse(source, lit.join(r[len(r)/2:]))
+    if len(response) > 120:
+        if '\n' in response:
+            splitintwo(response, '\n')
+        elif '? ' in response:
+            splitintwo(response, '? ')
+        elif '; ' in response:
+            splitintwo(response, '; ')
+        elif '.. ' in response:
+            splitintwo(response, '.. ')
+        elif '. ' in response:
+            splitintwo(response, '. ')
+        else: say(source,response)
+    else: say(source,response)
+
+    def splitintwo_old(response,lit):
+        r=response.split(lit)
         response=''
         if len(r)>2:
             for l in r[:len(r)-2]:
@@ -413,17 +429,6 @@ def postresponse(source,response):
         response+=r[len(r)-2]+lit.rstrip()
         postresponse(source,response)
         postresponse(source,r[len(r)-1])
-    if len(response) > 150:
-        if '\n' in response:
-            splitintwo(response, '\n')
-        elif '? ' in response:
-            splitintwo(response, '? ')
-        elif '.. ' in response:
-            splitintwo(response, '.. ')
-        elif '. ' in response:
-            splitintwo(response, '. ')
-        else: say(source,response)
-    else: say(source,response)
 
 def postresponse_old(source, response): 
     '''splits the quote into several lines'''
@@ -460,13 +465,16 @@ def sleeper(i):
     SLEEPING = False
     logger("woke up")
 
-def say(chan, msg):
-    if FREESPEECH:
-        waitfor = 2+len(msg)/(WAITFACTOR)
-        logger('waiting for '+str(waitfor))
-        time.sleep(waitfor)
+def say(source, msg):
+    if WAITFACTOR == 0:
+        waitfor = 0
+    else:
+        if FREESPEECH: waitfor = 2+len(msg)/(WAITFACTOR)
+        else: waitfor = len(msg)/(3*WAITFACTOR)
+    logger('waiting for '+str(waitfor))
+    time.sleep(waitfor)
     if CONNECTED:
-        IRC.send('PRIVMSG '+chan+' :'+msg+'\r\n')
+        IRC.send('PRIVMSG '+source+' :'+msg+'\r\n')
     else: print msg
 
 def reloadconfig(source):
@@ -554,6 +562,8 @@ def connect(verbose):
             parsemsg(line)
 
 def testallresponses():
+    global WAITFACTOR
+    storewf, WAITFACTOR = WAITFACTOR, 0
     l = RESPONSES.getresponseslist()
     errors,errcounter='',0
     for r in l:
@@ -561,6 +571,7 @@ def testallresponses():
         except: 
             errors+= r+'\n'+str(sys.exc_info())+'\n\n'
             errcounter+=1
+    WAITFACTOR = storewf
     print errors
     print 'errors: '+str(errcounter)
 
