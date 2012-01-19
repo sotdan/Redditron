@@ -1,10 +1,11 @@
 [botconfig]
 nick = redditron
 ident = bacon
-realname = I store shitposts.
+realname = i lurve reddit!
 admins = sotdan
 password = neckbeard
-servers = irc.synirc.net/6667, irc.freenode.net/8001
+servers = irc.synirc.net/6667,irc.freenode.net/8001
+defaultserver = 1
 chans = #reddit,#srs
 freespeech = 0
 waitfactor =10
@@ -30,6 +31,14 @@ r7 : I'm used to a more logic-based argumentation style.
 r8 : You just made a whole slew of fallacious arguments.
 r9 : Next time, give me a logic-based, compelling, original thought.
 r10 : I find your argument very illogical.
+r11 : Someone needs to take Logic 101.
+r12 : Reasoned debate with is impossible with fanatics like you.
+r13 : Logical discourse is impossible with you.
+r14 : http://en.wikipedia.org/wiki/Fallacy
+r15 : Are you trolling me?
+r16 : That is immaterial to the truth of what I'm saying.
+r17 : You are losing the logical fight. And that's all that matters.
+r18 : My argument is sound, and no amount of your nonsense can change that.
 
 [botresponses]
 r1 : I'm not a bot.
@@ -38,6 +47,10 @@ r3 : I'm not a fucking bot!
 r4 : Can you prove that I'm a bot?
 r5 : Maybe it is YOU who is the bot!
 r6 : Holy fuck, we're too close to a robot holocaust.
+r7 : I'm actually quite offended that you think I'm a bot.
+r8 : That's just an ad hominem.
+r9 : http://en.wikipedia.org/wiki/Ad_hominem
+r10: Label me however you want. Doesn't change what I'm saying.
 
 [stfuresponses]
 r1 : You can't silence me!

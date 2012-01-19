@@ -1,11 +1,66 @@
 #!/usr/bin/env python
 
-import socket, time, bot, sys, argparse
+import socket, time, bot, sys, argparse, ConfigParser
 from threading import Timer
 
 
 
 TIME=0 #Timer time.
+configfile = sys.path[0]+"/redditronrc"
+
+class BotConfig(object):
+    def __init__(self, configfile):
+        conf = ConfigParser.ConfigParser()
+        conf.read(configfile)
+        self.nick = conf.get('botconfig', 'nick')
+        print 'nick: '+self.nick
+        self.waitfactor = conf.getint('botconfig', 'waitfactor')
+        print 'waitfactor: '+str(self.waitfactor)
+        self.sleeptime = conf.getint('botconfig','sleeptime')
+        print 'sleeptime: '+str(self.sleeptime)
+        self.freespeech = conf.getboolean('botconfig','freespeech')
+        print 'freespeech: '+str(self.freespeech)
+        self.admins=conf.get('botconfig','admins').split(',')
+        print 'importing responses from conf file'
+        def readlistfromconf(a):
+            rlist = conf.items(a)
+            result = []
+            for r in rlist:
+                r = r[1]
+                result.append(r)
+            return result
+        self.fallbackr = readlistfromconf('fallbackresponses')
+        self.qfallbackr = readlistfromconf('fallbackresponsesq')
+        self.botresponses = readlistfromconf('botresponses')
+        self.stfuresponses = readlistfromconf('stfuresponses')
+        print 'done'
+
+        servers = conf.get('botconfig','servers').split(',')
+        defaultserver = conf.getint('botconfig','defaultserver')
+        server = self.pickaserver(servers, defaultserver)
+        self.host = server.strip().split('/')[0]
+        self.port = int(server.strip().split('/')[1])
+        self.ident = conf.get('botconfig','ident')
+        self.realname = conf.get('botconfig','realname')
+        self.nspassword = conf.get('botconfig','password')
+        self.chanlist = conf.get('botconfig','chans').split(',')
+
+    def pickaserver(self, servers, defaultserver):
+        counter=1
+        print 'Choose a server:\n'
+        for s in servers:
+            if counter == defaultserver:
+                print str(counter)+': '+s+' [default]'
+            else: print str(counter)+': '+s
+            counter+=1
+        msg= raw_input('>> enter a number or press enter for the default: ')
+        counter=1
+        try: choice = int(msg)
+        except:choice=defaultserver
+        for s in servers:
+            if counter == choice:
+                return s
+        return servers[defaultserver - 1]
 
 
 def incrementtime():
@@ -19,9 +74,10 @@ def main():
     parser = argparse.ArgumentParser(description='Runs Redditron.')
     parser.add_argument('--verbose','-v',action='store_true')
     args = parser.parse_args()
+    config= BotConfig(configfile)
+    config.verbose = args.verbose
+    redditron = bot.Redditron(config)
+    redditron.run(config.host, config.port)
 
-    incrementtime()
-    bot.connect(args.verbose)
-    
 if __name__ == '__main__': 
    main()
