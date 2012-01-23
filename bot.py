@@ -347,6 +347,24 @@ class Redditron(irc.Bot):
         else:
             self.say(source, "something isn't right")
 
+    def getrandomtwitterpost2(self,source,msg):
+        '''trying to remove the python-twitter dependency'''
+        url  = 'http://search.twitter.com/search.json'
+        json = self._FetchUrl(url, parameters=parameters)
+        url = self._BuildUrl(url, extra_params=extra_params)
+        encoded_post_data = self._EncodePostData(post_data)
+        http_handler  = self._urllib.HTTPHandler(debuglevel=_debug)
+        https_handler = self._urllib.HTTPSHandler(debuglevel=_debug)
+
+        opener = self._urllib.OpenerDirector()
+        opener.add_handler(http_handler)
+        opener.add_handler(https_handler)
+        response = opener.open(url, encoded_post_data)
+        url_data = self._DecompressGzippedResponse(response)
+        opener.close()
+        data = self._ParseAndCheckTwitter(json)
+
+
     def getrandomtwitterpost(self, source, msg):
         msg = msg.split()
         if msg[1] == 'twitter':
@@ -397,8 +415,9 @@ class Redditron(irc.Bot):
                     self.say(source,'Error.')
                     self.logger('error while adding quote')
                 elif c==1: 
-                    self.say(source, 'Added!')
+                    self.responses.checkiffilechanged()
                     self.responses.savetofile()
+                    self.say(source, 'Added!')
                     self.logger("added:\n"+response+'\nwith the tag:\n'+tag)
                 elif c==2:
                     msg='The exact quote already exists.'
@@ -478,45 +497,6 @@ class Redditron(irc.Bot):
     def logger(self, msg):
         if self.connected:
             print msg
-
-    
-    # def nsidentify(self):
-    #     password=self.config.nspassword
-    #     print 'identifying with the password',password
-    #     time.sleep(7)
-    #     self.irc.send('PRIVMSG NickServ IDENTIFY '+password+'\r\n')
-    #     time.sleep(3)        
-
-    # def connect(self):
-    #     self.irc=socket.socket(socket.AF_INET, socket.SOCK_STREAM) #Create the socket
-    #     host,port= self.config.host, self.config.port
-    #     print 'attempting to connect to',host
-    #     self.irc.connect((host,port)) #Connect to server
-    #     self.irc.send('NICK '+self.nick+'\r\n') #Send the nick to server
-        
-    #     self.irc.send('USER '+self.config.ident+' '+host+' bacon :'+self.config.realname+'\r\n')
-    #     while True:
-    #         try:
-    #             line = self.irc.recv( 4096 ) #recieve server messages
-    #         except:
-    #             sys.exit("connection error")
-    #         if self.config.verbose == True:
-    #             print line
-    #         if line.find ( 'Nickname is already in use.' ) != -1:
-    #             sys.exit("pick another nick")
-    #         if line.find ( 'PING' ) != -1: #If server pings then pong
-    #             self.irc.send('PONG '+line.split() [ 1 ]+'\r\n')
-    #             print "pinged",strftime("%H:%M:%S"),"\r",
-    #             sys.stdout.flush()        
-    #             if self.connected == False:
-    #                 self.connected=True
-    #                 print 'bam - connected'
-    #                 self.nsidentify()
-    #                 for ch in self.config.chanlist:
-    #                     self.irc.send('JOIN '+ch+' \r\n') #Join a channel
-    #                     self.logger('joined '+ch) # TODO check if actuallyjoined
-    #         elif line.find('PRIVMSG')!=-1: #Call a parsing function
-    #             self.parsemsg(line)
 
 def testallresponses(self):
     storewf, self.waitfactor = self.waitfactor, 0

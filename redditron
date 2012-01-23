@@ -13,7 +13,9 @@ class BotConfig(object):
         conf = ConfigParser.ConfigParser()
         conf.read(configfile)
         self.nick = self.pickanick(conf.get('botconfig', 'nick'))
+ 
         print 'nick: '+self.nick
+
         self.waitfactor = conf.getint('botconfig', 'waitfactor')
         print 'waitfactor: '+str(self.waitfactor)
         self.sleeptime = conf.getint('botconfig','sleeptime')
@@ -46,38 +48,16 @@ class BotConfig(object):
         chans = conf.get('botconfig','chans').split(',')
         self.chanlist = self.pickchans(chans)
 
-
     def pickaserver(self, servers, defaultserver):
-        counter=1
+        defaultserver=servers[defaultserver-1]
         print 'Choose a server:\n'
-        for s in servers:
-            if counter == defaultserver:
-                print str(counter)+': '+s+' [default]'
-            else: print str(counter)+': '+s
-            counter+=1
+        for s in range(len(servers)):
+            if servers[s] == defaultserver:
+                print str(s+1)+': '+servers[s]+' [default]'
+            else: print str(s+1)+': '+servers[s]
         msg= raw_input('>> enter a number: ')
-        counter=1
-        for s in servers:
-            if counter == ing(msg):
-                return s
-            counter+=1
-        return servers[defaultserver - 1]
-
-    def pickaserver_old(self, servers, defaultserver):
-        counter=1
-        print 'Choose a server:\n'
-        serverd = {}
-        for s in servers:
-            if counter == defaultserver:
-                print str(counter)+': '+s+' [default]'
-            else: print str(counter)+': '+s
-            serverd[counter]=s
-            counter+=1
-        msg= raw_input('>> enter a number or press enter for the default: ')
-        counter=1
-        choice = int(msg)
-        return serverd[choice]
-        return servers[defaultserver - 1]
+        try: return servers[int(msg)-1]
+        except: return defaultserver
 
     def pickanick(self, defaultnick):
         msg= raw_input('>> enter a nick (default= %s): ' % defaultnick)
@@ -91,7 +71,7 @@ class BotConfig(object):
             msg= raw_input('>> join %s? (y/n) ' % c)
             if msg.lower()=="y":
                 result.append(c)
-        print result
+        print 'joining: '+ str(result)
         return result
 
 

@@ -19,6 +19,10 @@ class Responses(object):
            print 'responsefile is not a dict'
            return {}
 
+   def checkiffilechanged(self):
+       fromfile = self.loaddb
+       if self.quotes!=fromfile:
+           self.quotes=fromfile
 
    def savetofile(self):
        if self.quotes != self.loaddb():
