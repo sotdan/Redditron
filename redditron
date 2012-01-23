@@ -12,7 +12,7 @@ class BotConfig(object):
     def __init__(self, configfile):
         conf = ConfigParser.ConfigParser()
         conf.read(configfile)
-        self.nick = conf.get('botconfig', 'nick')
+        self.nick = self.pickanick(conf.get('botconfig', 'nick'))
         print 'nick: '+self.nick
         self.waitfactor = conf.getint('botconfig', 'waitfactor')
         print 'waitfactor: '+str(self.waitfactor)
@@ -43,7 +43,9 @@ class BotConfig(object):
         self.ident = conf.get('botconfig','ident')
         self.realname = conf.get('botconfig','realname')
         self.nspassword = conf.get('botconfig','password')
-        self.chanlist = conf.get('botconfig','chans').split(',')
+        chans = conf.get('botconfig','chans').split(',')
+        self.chanlist = self.pickchans(chans)
+
 
     def pickaserver(self, servers, defaultserver):
         counter=1
@@ -53,14 +55,44 @@ class BotConfig(object):
                 print str(counter)+': '+s+' [default]'
             else: print str(counter)+': '+s
             counter+=1
+        msg= raw_input('>> enter a number: ')
+        counter=1
+        for s in servers:
+            if counter == ing(msg):
+                return s
+            counter+=1
+        return servers[defaultserver - 1]
+
+    def pickaserver_old(self, servers, defaultserver):
+        counter=1
+        print 'Choose a server:\n'
+        serverd = {}
+        for s in servers:
+            if counter == defaultserver:
+                print str(counter)+': '+s+' [default]'
+            else: print str(counter)+': '+s
+            serverd[counter]=s
+            counter+=1
         msg= raw_input('>> enter a number or press enter for the default: ')
         counter=1
-        try: choice = int(msg)
-        except:choice=defaultserver
-        for s in servers:
-            if counter == choice:
-                return s
+        choice = int(msg)
+        return serverd[choice]
         return servers[defaultserver - 1]
+
+    def pickanick(self, defaultnick):
+        msg= raw_input('>> enter a nick (default= %s): ' % defaultnick)
+        if msg=="":
+            return defaultnick
+        else: return msg
+
+    def pickchans(self, chanlist):
+        result=[]
+        for c in chanlist:
+            msg= raw_input('>> join %s? (y/n) ' % c)
+            if msg.lower()=="y":
+                result.append(c)
+        print result
+        return result
 
 
 def incrementtime():
