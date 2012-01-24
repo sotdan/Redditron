@@ -1,6 +1,14 @@
 import cPickle as pickle
 import random, sys
 
+def decode(bytes):
+    try: text = bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        try: text = bytes.decode('iso-8859-1')
+        except UnicodeDecodeError:
+            text = bytes.decode('cp1252')
+    return text
+
 class Responses(object):
    
    def __init__(self):
@@ -56,6 +64,7 @@ class Responses(object):
        return 'There are '+str(len(tags))+' tags and '+str(q)+' quotes.'
 
    def detect(self, msg):
+        '''checks if there are any triggers in a string'''
         response, logmsg="",""
         keys = self.quotes.keys()
         detected=[]
@@ -68,7 +77,12 @@ class Responses(object):
                 response = 'error'
             else: 
                 responselist = self.quotes[key]
-                response = random.choice(responselist)
+                if len(responselist)==0: #this shouldn't happen anymore but w/e
+                    response = 'error'
+                    del self.quotes[key]
+                    self.savetofile()
+                else:
+                    response = random.choice(responselist)
         return detected, response
 
    def getresponses(self, msg):
@@ -97,8 +111,8 @@ class Responses(object):
        for x in self.quotes.keys():
            if self.quotes[x] != None:
                for y in self.quotes[x]:
-                   r+=(x+' --- '+y+'\n\n')
-       return r
+                   r+=(decode(x)+' --- '+decode(y)+'\n\n')
+       return r.encode('utf-8')
    
    def searchdb(self, lit):
        '''Returns a list of qid-tag-quote lists'''
@@ -145,7 +159,9 @@ class Responses(object):
    def deletequote(self,xid,yid):
        quote=self.getquoteforqid(xid,yid)
        self.quotes[quote[0]].remove(quote[1])
-       self.savetofile()                        
+       if len(self.quotes[quote[0]]) == 0:
+           del self.quotes[key]
+       self.savetofile()
 
    def deletequoteprompt(self,tagid,responseid):
        quote= self.getquoteforqid(tagid,responseid)

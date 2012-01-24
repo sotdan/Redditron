@@ -1,4 +1,4 @@
-import random, re, time, datetime, sys
+import random, re, time, datetime, sys,twitter
 from time import strftime
 from urllib import urlopen, urlencode
 
@@ -6,12 +6,13 @@ def posttopastebin(msg):
     url="http://pastebin.com/api/api_post.php"
     args={"api_dev_key":"fc4f3b4a851dc450d97932233d5bf546",
           "api_option":"paste",
-          "api_paste_code":msg, 
+          "api_paste_code":msg.encode('utf-8'), 
           "api_paste_expire_date":"10M"}
     try:
         p = urlopen(url,urlencode(args)).read()
         rawlink = p.replace('m/','m/raw.php?i=')
     except:
+        print >> sys.stderr, sys.exc_info()[1]
         rawlink="couldn't connect to pastebin"
     return rawlink
 
@@ -88,6 +89,14 @@ def selfdestruct(redditron, source, sender):
     else:
 		redditron.say(source, 'Only botadmins can do that.')
 
+def decode(bytes):
+    try: text = bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        try: text = bytes.decode('iso-8859-1')
+        except UnicodeDecodeError:
+            text = bytes.decode('cp1252')
+    return text
+
 def genmantra(redditron, source, sender, msg):
     msg = msg.split()
     result = ''
@@ -98,13 +107,14 @@ def genmantra(redditron, source, sender, msg):
         x = msg[2]
         y = msg[3]
         for m in mantra:
-            m=m.replace('RACE', x.upper())
-            m=m.replace('race', x.lower())
-            m=m.replace('racist', x.lower()+'ist')
-            m=m.replace('WHITE', y.upper())
-            m=m.replace('white', y.lower())
-            m=m.replace('black', y.lower())
-            m=m.replace('BLACK', y.upper())
+            m= decode(m)
+            m=m.replace(u'RACE', x.upper())
+            m=m.replace(u'race', x.lower())
+            m=m.replace(u'racist', x.lower()+u'ist')
+            m=m.replace(u'WHITE', y.upper())
+            m=m.replace(u'white', y.lower())
+            m=m.replace(u'black', y.lower())
+            m=m.replace(u'BLACK', y.upper())
             result+=m+'\r\n'
         link = posttopastebin(result)
         redditron.say(source, link)

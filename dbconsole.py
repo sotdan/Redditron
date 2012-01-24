@@ -110,7 +110,7 @@ def main():
             #eval(msg)
             try: eval(msg)
             except: 
-                print sys.exc_info()[1]
+                print sys.exc_info()
 
 
 if __name__ == '__main__': 
