@@ -58,6 +58,7 @@ class BotConfig(object):
         msg= raw_input('>> enter a number: ')
         try: return servers[int(msg)-1]
         except: return defaultserver
+   
 
     def pickanick(self, defaultnick):
         msg= raw_input('>> enter a nick (default= %s): ' % defaultnick)
@@ -73,7 +74,6 @@ class BotConfig(object):
                 result.append(c)
         print 'joining: '+ str(result)
         return result
-
 
 def incrementtime():
     global TIME

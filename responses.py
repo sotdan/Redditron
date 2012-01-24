@@ -27,10 +27,16 @@ class Responses(object):
    def savetofile(self):
        if self.quotes != self.loaddb():
            print 'saving.'
-           output = open(sys.path[0]+"/responses.dat", 'wb')
-           pickle.dump(self.quotes, output)
+           output = open(sys.path[0]+"/responses.dat",'wb')
+           if isinstance(self.quotes, dict):
+               pickle.dump(self.quotes, output)
+               return 1#saved
+           else: 
+               print 'quotes are not a dict'
+               return 0#didn't save
            output.close()
        else: print 'nothing new to save'
+       return 0
 
    def getkeys(self):
        r=''

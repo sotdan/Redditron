@@ -88,8 +88,6 @@ class Bot(asynchat.async_chat):
             self.write(('PASS', self.password))
         self.write(('NICK', self.nick))
         self.write(('USER', self.user, '+iw', self.nick), self.name)
-        for ch in self.config.chanlist:
-            self.push('JOIN '+ch+' \r\n')
 
     def handle_close(self):
         self.close()
@@ -99,20 +97,6 @@ class Bot(asynchat.async_chat):
         self.buffer += data
 
     def found_terminator(self):
-        line = self.buffer
-        if line.endswith('\r'):
-            line = line[:-1]
-        self.buffer = ''
-        if line.find('PRIVMSG')!=-1:
-            self.dispatch(line)
-        if ' :' in line:
-            argstr, text = line.split(' :', 1)
-        else: argstr, text = line, ''
-        args = argstr.split()
-        if args[0] == 'PING':
-            self.write(('PONG', text))
-
-    def found_terminator_phenny(self):
         line = self.buffer
         if line.endswith('\r'):
             line = line[:-1]
@@ -134,10 +118,7 @@ class Bot(asynchat.async_chat):
         if args[0] == 'PING':
             self.write(('PONG', text))
 
-    def dispatch(self, line):
-        pass
-
-    def dispatch_phenny(self, origin, args):
+    def dispatch(self, origin, args):
         pass
 
     def msg(self, recipient, text):
