@@ -47,6 +47,7 @@ class BotConfig(object):
         self.nspassword = conf.get('botconfig','password')
         chans = conf.get('botconfig','chans').split(',')
         self.chanlist = self.pickchans(chans)
+        self.exitfreespeechphrase=conf.get('botconfig','exitfreespeechphrase')
 
     def pickaserver(self, servers, defaultserver):
         defaultserver=servers[defaultserver-1]

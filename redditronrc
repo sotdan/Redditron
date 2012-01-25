@@ -10,6 +10,7 @@ chans = #reddit,#srs,#r.trees
 freespeech = 0
 waitfactor =10
 sleeptime = 20
+exitfreespeechphrase = You're a cracker
 
 [fallbackresponsesq]
 r1 : I don't understand the premise of your question.

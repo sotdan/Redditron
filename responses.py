@@ -69,7 +69,7 @@ class Responses(object):
         keys = self.quotes.keys()
         detected=[]
         for key in keys:
-            if key in msg:
+            if key in msg.lower():
                 detected.append(key)
         if len(detected)>0:
             key = random.choice(detected)
@@ -82,7 +82,7 @@ class Responses(object):
                     del self.quotes[key]
                     self.savetofile()
                 else:
-                    response = random.choice(responselist)
+                    response = str(random.choice(responselist))
         return detected, response
 
    def getresponses(self, msg):

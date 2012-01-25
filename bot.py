@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import functions,re, responses, irc,sys,time,random
+import functions,re, responses, irc,sys,time,random,imp
 from threading import Thread
 from threading import Timer
 from time import strftime
@@ -45,7 +45,8 @@ class Redditron(irc.Bot):
         elif event=='366':
             self.logger('joined '+args[1])
         elif event=='PRIVMSG':
-            self.respondtomsg(origin,text)
+            input = self.input(origin, text, args)
+            self.respondtomsg(input)
 
     def respondtomsg_new(self,origin,text):
         if not self.freespeech:
@@ -58,115 +59,100 @@ class Redditron(irc.Bot):
     def partch(self,ch):
         self.write(('PART',ch))
 
-    def respondtomsg(self, origin, msg):
-        source,sender=origin.sender, origin.nick
-        responded = False
-        if source == self.nick: #for PMs
-            source = sender
+    def input(self, origin, text, args):
+        class CommandInput(unicode):
+            def __new__(cls, text, origin, args):
+                s = unicode.__new__(cls, text)
+                s.text=text
+                s.source = origin.sender
+                s.nick = origin.nick
+                s.args = args
+                s.admin = origin.nick in self.config.admins
+                s.priv = not origin.sender.startswith('#')
+                return s
+
+        return CommandInput(text, origin, args)
+
+    def respondtomsg(self, input):
+        responded,msg = False, input.text
+        if input.priv: #for PRIVMSGs
             msg=self.nick+' '+msg
         if self.freespeech:
-            if re.match(self.nick.lower()+'(:|,|\ )', msg.lower()):
-                if 'self-destruct' in msg:
-                    functions.selfdestruct(self,source, sender)
-                    responded = True
-                elif 'sleeptime' in msg:
-                    functions.setsleeptime(self,source, msg)
-                    responded = True
-                elif 'waitfactor' in msg:
-                    functions.setwaitfactor(self,source, msg)
-                    responded = True
-                elif 'bot' in msg or 'help' in msg:
-                    functions.detected(self,source)
-                    responded = True
-                elif 'changemode' in msg:
-                    functions.changemode(self,source)
-                    responded = True
-                elif 'shut up' in msg or 'stfu' in msg:
-                    functions.stfu(self,source,msg)
-                    responded = True
-                if self.sleeping == False and responded == False:
-                    responded = functions.detecttrigger(self,msg.lower(), source)
-                if responded == False:
-                    functions.fallback(self, source, sender, msg)
-                    responded = True
-            else:
-                if self.sleeping == False:
-                    responded = functions.detecttrigger(self,msg.lower(), source)
+            functions._freespeech(self,input)
         else:
             if re.match(self.nick.lower()+'(:|,|\ )', msg.lower()):
                 if 'addadmin' in msg:
-                    functions.addadmin(self,source, msg, sender)
+                    functions.addadmin(self,input)
                     responded = True
                 elif 'addquote' in msg:
-                    functions.addredditry(self,source, msg, sender)
+                    functions.addredditry(self,input)
                     responded = True
                 elif 'joinchan' in msg:
-                    functions.joinchan(self,source, msg, sender)
+                    functions.joinchan(self,input)
                     responded = True
                 elif 'partchan' in msg:
-                    functions.partchan(self,source, msg, sender)
+                    functions.partchan(self,input)
                     responded = True
                 elif 'changenick' in msg:
-                    functions.changenick(self,source, msg, sender)
+                    functions.changenick(self,input)
                     responded = True
                 elif 'randomquote' in msg:
-                    functions.randomresponse(self,source)
+                    functions.randomquote(self,input)
                     responded = True
                 elif 'changemode' in msg:
-                    functions.changemode(self,source)
+                    functions.changemode(self,input)
                     responded = True
                 elif 'bot' in msg or 'help' in msg:
-                    functions.detected(self,source)
+                    functions.detected(self,input)
                     responded = True
                 elif 'uptime' in msg:
-                    functions.getuptime(self,source)
+                    functions.getuptime(self,input)
                     responded = True
-                elif 'getstats' in msg:
-                    functions.getdbstats(self,source)
+                elif 'stats' in msg:
+                    functions.stats(self,input)
                     responded = True
                 elif 'getquotes' in msg:
-                    functions.getquotes(self,source,msg)
+                    functions.getquotes(self,input)
                     responded = True
                 elif 'twitterpost' in msg:
-                    functions.posttwittertopastebin(self,source,msg)
+                    functions.twitterpost(self,input)
                     responded = True
                 elif 'twitter' in msg:
-                    functions.getrandomtwitterpost(self,source, msg)
+                    functions.getrandomtwitterpost(self,input)
                     responded = True
                 elif 'gettags' in msg or 'triggers' in msg:
-                    functions.getkeys(self,source)
+                    functions.gettags(self,input)
                     responded = True
                 elif 'bobsmantra' in msg:
-                    functions.bobsmantra(self,source, sender, msg)
+                    functions.bobsmantra(self,input)
                     responded = True
                 elif 'reloadconfig' in msg:
-                    functions.reloadconfig(self,source)
+                    functions.reloadconfig(self,input)
                     responded = True
                 elif 'genmantra' in msg:
-                    functions.genmantra(self,source, sender, msg)
+                    functions.genmantra(self,input)
                     responded = True
                 else:
                     if responded == False:
-                        responded = functions.detecttrigger(self,msg.lower(), source)
+                        responded = functions.detecttrigger(self,input)
                     if responded == False:
-                        functions.fallback(self,source, sender, msg)
+                        functions.fallback(self,input)
                         responded = True
         if responded == False:
             if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
-                functions.detected(self,source)
+                functions.detected(self,input)
             elif 'shut up' in msg or 'stfu' in msg:
                 if self.nick in msg:
-                    functions.stfu(self,source)
+                    functions.stfu(self,input)
             elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
                 self.say(source,'Hello, friend.')
 
     def sleepafterresponse(self):
-        if self.freespeech:
-            sleepfor = random.choice((self.sleeptime/2, self.sleeptime/4,
-                                     self.sleeptime*3, self.sleeptime*2))
-            self.logger('sleeping for '+str(sleepfor))
-            t = Thread(target=self.sleeper, args=(sleepfor,))
-            t.start()
+        sleepfor = random.choice((self.sleeptime/2, self.sleeptime/4,
+                                 self.sleeptime*3, self.sleeptime*2))
+        self.logger('sleeping for '+str(sleepfor))
+        t = Thread(target=self.sleeper, args=(sleepfor,))
+        t.start()
 
     def postresponse(self,source,response):
         '''splits the string into several lines and then posts it
@@ -186,10 +172,10 @@ class Redditron(irc.Bot):
                 splitintwo(response, '.. ')
             elif '. ' in response:
                 splitintwo(response, '. ')
-            else: self.say(source,response)
-        else: self.say(source,response)
+            else: self.say(source,response,True)
+        else: self.say(source,response,True)
 
-    def say(self, source, msg):
+    def say(self, source, msg, sleepafter=False):
         if self.waitfactor == 0:
             waitfor = 0
         else:
@@ -198,10 +184,15 @@ class Redditron(irc.Bot):
         self.logger('waiting for '+str(waitfor))
         time.sleep(waitfor)
         if self.connected:
-            self.msg(source,msg)
+            if isinstance(msg,str):
+                self.msg(source,msg)
+            else: print 'WARNING - notastring: ',msg
         else: print msg
+        if sleepafter and self.freespeech:
+            self.sleepafterresponse
 
-    def sleeper(redditron, i):
+    def sleeper(self, i):
+        if redditron.sleeping: return
         redditron.sleeping = True
         time.sleep(i)
         redditron.sleeping = False
