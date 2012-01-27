@@ -35,6 +35,7 @@ class BotConfig(object):
         self.qfallbackr = readlistfromconf('fallbackresponsesq')
         self.botresponses = readlistfromconf('botresponses')
         self.stfuresponses = readlistfromconf('stfuresponses')
+        self.greetings = readlistfromconf('greetings')
         print 'done'
 
         servers = conf.get('botconfig','servers').split(',')

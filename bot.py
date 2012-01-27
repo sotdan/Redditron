@@ -44,6 +44,9 @@ class Redditron(irc.Bot):
             self.startup()
         elif event=='366':
             self.logger('joined '+args[1])
+            input = self.input(origin, text, args)
+            input.source=args[1]
+            functions.greet(self, input)
         elif event=='PRIVMSG':
             input = self.input(origin, text, args)
             self.respondtomsg(input)
@@ -145,7 +148,7 @@ class Redditron(irc.Bot):
                 if self.nick in msg:
                     functions.stfu(self,input)
             elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
-                self.say(source,'Hello, friend.')
+                self.say(input.source,'Hello, friend.')
 
     def sleepafterresponse(self):
         sleepfor = random.choice((self.sleeptime/2, self.sleeptime/4,
@@ -172,8 +175,8 @@ class Redditron(irc.Bot):
                 splitintwo(response, '.. ')
             elif '. ' in response:
                 splitintwo(response, '. ')
-            else: self.say(source,response,True)
-        else: self.say(source,response,True)
+            else: self.say(source,response,sleepafter=True)
+        else: self.say(source,response,sleepafter=True)
 
     def say(self, source, msg, sleepafter=False):
         if self.waitfactor == 0:
@@ -189,14 +192,14 @@ class Redditron(irc.Bot):
             else: print 'WARNING - notastring: ',msg
         else: print msg
         if sleepafter and self.freespeech:
-            self.sleepafterresponse
+            self.sleepafterresponse()
 
     def sleeper(self, i):
-        if redditron.sleeping: return
-        redditron.sleeping = True
+        if self.sleeping: return
+        self.sleeping = True
         time.sleep(i)
-        redditron.sleeping = False
-        redditron.logger("woke up")
+        self.sleeping = False
+        self.logger("woke up")
 
     def logger(self, msg):
         if self.connected:

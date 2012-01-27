@@ -11,19 +11,21 @@ def _freespeech(redditron,input):
         return
     if re.match(redditron.nick.lower()+'(:|,|\ )', msg.lower()):
         if redditron.sleeping == False:
-            responded = functions.detecttrigger(self,input)
+            responded = detecttrigger(redditron,input)
         if responded == False:
-            functions.fallback(self,input)
+            fallback(redditron,input)
             responded = True
     else:
-        if self.sleeping == False:
-            responded = functions.detecttrigger(self,input)
+        if redditron.sleeping == False:
+            responded = detecttrigger(redditron,input)
 
 def posttopastebin(msg):
+    try: msg = msg.encode('utf-8')
+    except: pass
     url="http://pastebin.com/api/api_post.php"
     args={"api_dev_key":"fc4f3b4a851dc450d97932233d5bf546",
           "api_option":"paste",
-          "api_paste_code":msg.encode('utf-8'), 
+          "api_paste_code":msg, 
           "api_paste_expire_date":"10M"}
     try:
         p = urlopen(url,urlencode(args)).read()
@@ -32,6 +34,14 @@ def posttopastebin(msg):
         print >> sys.stderr, sys.exc_info()[1]
         rawlink="couldn't connect to pastebin"
     return rawlink
+
+def greet(redditron,input):
+    msg=input.text
+    if input.priv:
+        reply= random.choice(redditron.config.greetings)
+    else:
+        reply=input.nick+', '+random.choice(redditron.config.greetings).lower()
+    redditron.say(input.source,reply,True)
 
 def fallback(redditron, input):
     msg=input.text
