@@ -179,7 +179,7 @@ class Responses(object):
    def randomquote(self):
        vals=self.quotes.values()
        r = random.choice(vals)
-       return random.choice(r)
+       return str(random.choice(r))
   
    def add(self, tag, response):
        '''return codes:
