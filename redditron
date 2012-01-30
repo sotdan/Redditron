@@ -18,10 +18,9 @@ class BotConfig(object):
 
         self.waitfactor = conf.getint('botconfig', 'waitfactor')
         print 'waitfactor: '+str(self.waitfactor)
-        self.sleeptime = conf.getint('botconfig','sleeptime')
-        print 'sleeptime: '+str(self.sleeptime)
+        self.cooldowntime = conf.getint('botconfig','cooldowntime')
+        print 'cooldowntime: '+str(self.cooldowntime)
         self.freespeech = conf.getboolean('botconfig','freespeech')
-        print 'freespeech: '+str(self.freespeech)
         self.admins=conf.get('botconfig','admins').split(',')
         print 'importing responses from conf file'
         def readlistfromconf(a):
@@ -49,6 +48,8 @@ class BotConfig(object):
         chans = conf.get('botconfig','chans').split(',')
         self.chanlist = self.pickchans(chans)
         self.exitfreespeechphrase=conf.get('botconfig','exitfreespeechphrase')
+        self.freespeech=self.pickfreespeech(self.freespeech)
+        print 'freespeech: '+str(self.freespeech)
 
     def pickaserver(self, servers, defaultserver):
         defaultserver=servers[defaultserver-1]
@@ -61,6 +62,14 @@ class BotConfig(object):
         try: return servers[int(msg)-1]
         except: return defaultserver
    
+    def pickfreespeech(self,defaultfreespeech):
+        msg=raw_input('>> enable free speech?(default: %s)'  % defaultfreespeech)
+        if msg=='y':
+            return True
+        elif msg=='n':
+            return False
+        else:
+            return defaultfreespeech
 
     def pickanick(self, defaultnick):
         msg= raw_input('>> enter a nick (default= %s): ' % defaultnick)

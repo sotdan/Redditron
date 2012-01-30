@@ -12,13 +12,13 @@ def _freespeech(redditron,input):
         say(input.source,'...')
         return
     if re.match(redditron.nick.lower()+'(:|,|\ )', msg.lower()):
-        if redditron.sleeping == False:
+        if redditron.cooldown == False:
             responded = detecttrigger(redditron,input)
         if responded == False:
             fallback(redditron,input)
             responded = True
     else:
-        if redditron.sleeping == False:
+        if redditron.cooldown == False:
             responded = detecttrigger(redditron,input)
 
 def _posttopastebin(msg):
@@ -192,15 +192,15 @@ def bobsmantra(redditron, input):
         redditron.say(input.source, 'Only botadmins can do that.')
 bobsmantra.commands=['bobsmantra']
 
-def setsleeptime(redditron, input):
+def setcooldown(redditron, input):
     msg=input.text
-    sleeptimecmd = msg.split()
-    if sleeptimecmd[2].isdigit():
-        redditron.sleeptime = int(sleeptimecmd[2])
-        a='Sleeptime is now '+sleeptimecmd[2]+' second(s).'
+    cooldown = msg.split()
+    if cooldown[2].isdigit():
+        redditron.cooldown = int(cooldown[2])
+        a='Cooldown time is now '+cooldown[2]+' second(s).'
         redditron.logger(a)
         redditron.say(input.source,a)
-setsleeptime.commands=['sleeptime']
+setcooldown.commands=['cooldown']
 
 def setwaitfactor(redditron, input):
     msg=input.text

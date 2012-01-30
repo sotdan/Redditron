@@ -22,11 +22,11 @@ class Redditron(irc.Bot):
         self.config = config
         self.nick = self.config.nick
         self.waitfactor=self.config.waitfactor
-        self.sleeptime=self.config.sleeptime
+        self.cooldowntime=self.config.cooldowntime
         self.freespeech=self.config.freespeech
         self.admins=self.config.admins
         self.connected= False
-        self.sleeping = False
+        self.cooldown = False
         self.responses = responses.Responses()
         self.setup()
     
@@ -72,12 +72,14 @@ class Redditron(irc.Bot):
                 nickmatch = re.match(self.nick.lower()+'(:|,|\ )', msg.lower())
                 if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
                     functions.detected(self,input)
+                elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
+                    functions.detected(self.input)
                 elif 'shut up' in msg or 'stfu' in msg:
                     if self.nick in msg:
                         functions.stfu(self,input)
                 elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
                     functions._greet(self,input)
-                if nickmatch or input.priv:
+                elif nickmatch or input.priv:
                     msg=msg[len(self.nick):].lstrip()
                     for c in self.commands:
                         if c in msg:
@@ -111,9 +113,9 @@ class Redditron(irc.Bot):
 
         return CommandInput(text, origin, args)
 
-    def sleepafterresponse(self):
-        sleepfor = random.choice((self.sleeptime/2, self.sleeptime/4,
-                                 self.sleeptime*3, self.sleeptime*2))
+    def startcooldown(self):
+        sleepfor = random.choice((self.cooldowntime/2, self.cooldowntime/4,
+                                 self.cooldowntime*3, self.cooldowntime*2))
         self.logger('sleeping for '+str(sleepfor))
         t = Thread(target=self.sleeper, args=(sleepfor,))
         t.start()
@@ -136,10 +138,10 @@ class Redditron(irc.Bot):
                 splitintwo(response, '.. ')
             elif '. ' in response:
                 splitintwo(response, '. ')
-            else: self.say(source,response,sleepafter=True)
-        else: self.say(source,response,sleepafter=True)
+            else: self.say(source,response,cooldown=True)
+        else: self.say(source,response,cooldown=True)
 
-    def say(self, source, msg, sleepafter=False):
+    def say(self, source, msg, cooldown=False):
         if self.waitfactor == 0:
             waitfor = 0
         else:
@@ -152,14 +154,14 @@ class Redditron(irc.Bot):
                 self.msg(source,msg)
             else: print 'WARNING - notastring: ',msg
         else: print msg
-        if sleepafter and self.freespeech:
-            self.sleepafterresponse()
+        if cooldown and self.freespeech:
+            self.startcooldown()
 
     def sleeper(self, i):
-        if self.sleeping: return
-        self.sleeping = True
+        if self.cooldown: return
+        self.cooldown = True
         time.sleep(i)
-        self.sleeping = False
+        self.cooldown = False
         self.logger("woke up")
 
     def logger(self, msg):
@@ -187,7 +189,7 @@ def main():
         def __init__(self):
             self.nick='redditron'
             self.waitfactor=0
-            self.sleeptime=20
+            self.cooldowntime=20
             self.admins=['']
             self.freespeech=False
             self.exitfreespeechphrase = u"You're a cracker"

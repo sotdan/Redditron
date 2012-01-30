@@ -9,7 +9,7 @@ defaultserver = 1
 chans = #reddit,#srs,#r.trees
 freespeech = 0
 waitfactor =10
-sleeptime = 20
+cooldowntime = 20
 exitfreespeechphrase = You're a cracker
 
 [fallbackresponsesq]
@@ -69,3 +69,4 @@ r2 : Greetings, I see Darwin has blessed us with another beautiful day!
 r3 : RON PAUL 2012!
 r4 : Hail Dawkins!
 r5 : Praise Science!
+r6 : Darwinspeed, comrades!
