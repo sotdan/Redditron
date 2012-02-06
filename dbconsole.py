@@ -65,6 +65,31 @@ def reviewquotesbyqid(qids):
 def reviewquotes(args):
     reviewquotesbyqid(RESPONSES.getallqids())
 
+def findnotstr(args):
+    addednew,tagnotstr,quotenotstr=0,0,0
+    for qid in RESPONSES.getallqids():
+        quote= RESPONSES.getquoteforqid(qid[0],qid[1])
+        if quote==[]:
+            print 'invalid qid'
+        else:
+            if not isinstance(quote[0],str):
+                print quote
+                tagnotstr+=1
+                rc=RESPONSES.add(quote[0],quote[1])
+                if rc==0:
+                    print 'error while adding'
+                elif rc==1: 
+                    print 'added as str! \n'
+                    addednew +=1
+                elif rc==2:
+                    print 'quote already exists'
+                #RESPONSES.deletequoteprompt(qid[0],qid[1])
+            if not isinstance(quote[1],str):
+                quotenotstr+=1
+    print '%s tags and %s quotes are not strings' % (tagnotstr,quotenotstr)
+    print 'added %s new quotes as str' % addednew
+
+
 def stats(args):
     print RESPONSES.stats()
 

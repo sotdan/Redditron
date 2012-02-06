@@ -102,7 +102,7 @@ class Responses(object):
        for x in self.quotes.keys():
            if self.quotes[x] != None:
                for y in self.quotes[x]:
-                   r.append(y)
+                   r.append(str(y))
        return r
 
    def getstring(self):
@@ -160,7 +160,7 @@ class Responses(object):
        quote=self.getquoteforqid(xid,yid)
        self.quotes[quote[0]].remove(quote[1])
        if len(self.quotes[quote[0]]) == 0:
-           del self.quotes[key]
+           del self.quotes[quote[0]]
        self.savetofile()
 
    def deletequoteprompt(self,tagid,responseid):
@@ -185,15 +185,24 @@ class Responses(object):
        '''return codes:
        0: error - 1: added - 2: quote already exists
        '''
-       tag=tag.lower()
-       if tag in self.quotes:
+       response=str(response)
+       tag=str(tag.lower())
+       tagalreadyexists=False
+       for t in self.quotes.keys():
+           if tag == t and isinstance(t,str):
+               tagalreadyexists=True
+       if tagalreadyexists:
            if self.quotes[tag]==None:
                return 0
            else:
-               if not response in self.quotes[tag]:
+               alreadyexists=False
+               for q in self.quotes[tag]:
+                   if response == q and isinstance(q,str):
+                       alreadyexists=True
+               if alreadyexists: return 2
+               else:
                    self.quotes[tag].append(response)
                    return 1
-               else: return 2
        else:
            self.quotes[tag] = [response]
            return 1

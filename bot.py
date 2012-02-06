@@ -40,11 +40,16 @@ class Redditron(irc.Bot):
 
     def setup(self):
         self.commands={}
+        self.admincommands={}
         funcs=imp.load_source('functions',sys.path[0]+'/functions.py')
         for name, obj in vars(funcs).iteritems():
             if hasattr(obj,'commands'):
-                for c in obj.commands:
-                    self.commands[c]=obj
+                if hasattr(obj,'admin'):
+                    for c in obj.commands:
+                        self.admincommands[c]=obj
+                else:
+                    for c in obj.commands:
+                        self.commands[c]=obj
     
     def dispatch(self, origin, args):
         # origin.sender = nick when PM, else chan
@@ -73,7 +78,7 @@ class Redditron(irc.Bot):
                 if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
                     functions.detected(self,input)
                 elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
-                    functions.detected(self.input)
+                    functions.detected(self,input)
                 elif 'shut up' in msg or 'stfu' in msg:
                     if self.nick in msg:
                         functions.stfu(self,input)
@@ -84,6 +89,13 @@ class Redditron(irc.Bot):
                     for c in self.commands:
                         if c in msg:
                             responded = self.commands[c](self,input)
+                            break
+                    for c in self.admincommands:
+                        if c in msg:
+                            if input.admin:
+                                responded=self.admincommands[c](self,input)
+                            else:
+                                self.say(input.source,'Only botadmins can do that.')
                     if responded == False:
                         responded = functions.detecttrigger(self,input)
                     if responded == False:
@@ -98,6 +110,9 @@ class Redditron(irc.Bot):
 
     def nickch(self,ch):
         self.write(('NICK',ch))
+
+    def posthelpmsg(self,ch):
+        self.say(ch,'List of commands: '+', '.join(self.commands.keys()))
 
     def input(self, origin, text, args):
         class CommandInput(unicode):
@@ -141,7 +156,7 @@ class Redditron(irc.Bot):
             else: self.say(source,response,cooldown=True)
         else: self.say(source,response,cooldown=True)
 
-    def say(self, source, msg, cooldown=False):
+    def say(self, ch, msg, cooldown=False):
         if self.waitfactor == 0:
             waitfor = 0
         else:
@@ -151,7 +166,7 @@ class Redditron(irc.Bot):
         time.sleep(waitfor)
         if self.connected:
             if isinstance(msg,str):
-                self.msg(source,msg)
+                self.msg(ch,msg)
             else: print 'WARNING - notastring: ',msg
         else: print msg
         if cooldown and self.freespeech:
@@ -169,11 +184,11 @@ class Redditron(irc.Bot):
             print msg
 
 def testallresponses(redditron):
-    storewf, self.waitfactor = self.waitfactor, 0
+    storewf, redditron.waitfactor = redditron.waitfactor, 0
     l = redditron.responses.getresponseslist()
     errors,errcounter='',0
     for r in l:
-        try: postresponse("",r)
+        try: redditron.postresponse("",r)
         except: 
             errors+= r+'\n'+str(sys.exc_info())+'\n\n'
             errcounter+=1
@@ -184,7 +199,7 @@ def testallresponses(redditron):
 def main():
     '''Starts a Redditron Command Line Session
     '''
-    print 'Welcome to CLI Redditron'
+    print 'Welcome to Redditron'
     class BotConfig(object):
         def __init__(self):
             self.nick='redditron'

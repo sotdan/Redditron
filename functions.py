@@ -42,7 +42,7 @@ def _greet(redditron,input):
     if input.priv:
         reply= random.choice(redditron.config.greetings)
     else:
-        reply=input.nick+', '+random.choice(redditron.config.greetings).lower()
+        reply=random.choice(redditron.config.greetings)[:-1]+', '+input.nick
     redditron.say(input.source,reply,True)
 
 def fallback(redditron, input):
@@ -70,59 +70,60 @@ def stfu(redditron,input):
     redditron.say(input.source,random.choice(redditron.config.stfuresponses),True)
 
 def changenick(redditron,input):
+    '''
+    self-explanatory
+    '''
     msg=input.text
     msg = msg.split()
     if msg[1] == 'changenick':
-        if input.admin:
-            if len(msg) ==3:
-                redditron.logger(strftime("%H:%M:%S"))
-                redditron.logger("changing nick to "+msg[2])
-                redditron.nickch(msg[2])
-                redditron.nick = msg[2] 		
-            else:
-                redditron.say(input.source, 'yer doin it rong')
+        if len(msg) ==3:
+            redditron.logger(strftime("%H:%M:%S"))
+            redditron.logger("changing nick to "+msg[2])
+            redditron.nickch(msg[2])
+            redditron.nick = msg[2] 		
         else:
-            redditron.say(input.source, 'Only botadmins can do that.')
+            redditron.say(input.source, 'yer doin it rong')
 changenick.commands=['changenick']
+changenick.admin=1
 
 def partchan(redditron,input):
+    '''
+    Parts from a channel.
+    '''
     msg =input.text
     msg = msg.split()
     if msg[1] == 'partchan':
-        if input.admin:
-            if len(msg) ==3:
-                redditron.logger(strftime("%H:%M:%S"))
-                redditron.logger("parting "+msg[2])
-                redditron.partch(msg[2])
-            else:
-                redditron.say(input.source, 'yer doin it rong')
+        if len(msg) ==3:
+            redditron.logger(strftime("%H:%M:%S"))
+            redditron.logger("parting "+msg[2])
+            redditron.partch(msg[2])
         else:
-            redditron.say(input.source, 'Only botadmins can do that.')
+            redditron.say(input.source, 'yer doin it rong')
 partchan.commands=['partchan']
+partchan.admin=1
 
 def joinchan(redditron,input):
+    '''
+    Joins a channel.
+    '''
     msg=input.text
     msg = msg.split()
     if msg[1] == 'joinchan':
-        if input.admin:
-            if len(msg) ==3:
-                redditron.joinch(msg[2])
-            else:
-                redditron.say(input.source, 'yer doin it rong')
+        if len(msg) ==3:
+            redditron.joinch(msg[2])
         else:
-            redditron.say(input.source, 'Only botadmins can do that.')
+            redditron.say(input.source, 'yer doin it rong')
 joinchan.commands=['joinchan']
+joinchan.admin=1
 
 def selfdestruct(redditron, input):
-    if input.admin:
-        redditron.say(input.source, "____ ___  ____ ____ ___ _ _  _ ____ ")
-        redditron.say(input.source, "|__| |__] |  | |__/  |  | |\ | | __ ")
-        redditron.say(input.source, "|  | |__] |__| |  \  |  | | \| |__] ")
-        redditron.logger(strftime("%H:%M:%S")+' - leaving '+input.source)
-        redditron.partch(input.source)
-    else:
-		redditron.say(input.source, 'Only botadmins can do that.')
+    redditron.say(input.source, "____ ___  ____ ____ ___ _ _  _ ____ ")
+    redditron.say(input.source, "|__| |__] |  | |__/  |  | |\ | | __ ")
+    redditron.say(input.source, "|  | |__] |__| |  \  |  | | \| |__] ")
+    redditron.logger(strftime("%H:%M:%S")+' - leaving '+input.source)
+    redditron.partch(input.source)
 selfdestruct.commands=['selfdestruct']
+selfdestruct.admin=1
 
 def decode(bytes):
     try: text = bytes.decode('utf-8')
@@ -133,6 +134,9 @@ def decode(bytes):
     return text
 
 def genmantra(redditron, input):
+    '''
+    Generates a mantra. Format: genmantra word1 word2
+    '''
     msg=input.text
     msg = msg.split()
     result = ''
@@ -160,37 +164,39 @@ def genmantra(redditron, input):
 genmantra.commands=['genmantra']
 
 def bobsmantra(redditron, input):
-    if input.admin:
-        msg=input.text
-        msg = msg.split()
-        mantra = open(sys.path[0]+"/bobsmantra.txt", 'rb')
-        if len(msg) == 4:
-            replace = True
-            x = msg[2]
-            y = msg[3]
-        elif len(msg) == 2:
-            replace = False
-        else:
-            redditron.say(input.source, 'Format: bobsmantra word1 word2')
-            return
-        redditron.logger(strftime("%H:%M:%S")+" - starting to spam the mantra")
-        for m in mantra:
-            m= decode(m)
-            if replace == True:
-                m=m.replace('RACE', x.upper())
-                m=m.replace('race', x.lower())
-                m=m.replace('racist', x.lower()+'ist')
-                m=m.replace('WHITE', y.upper())
-                m=m.replace('white', y.lower())
-                m=m.replace('black', y.lower())
-                m=m.replace('BLACK', y.upper())
-            waitfor=len(m)/(redditron.waitfactor)
-            redditron.logger("waiting for "+str(waitfor))
-            time.sleep(waitfor)
-            redditron.say(input.source, str(m))
+    '''
+    Spams the mantra.
+    '''
+    msg=input.text
+    msg = msg.split()
+    mantra = open(sys.path[0]+"/bobsmantra.txt", 'rb')
+    if len(msg) == 4:
+        replace = True
+        x = msg[2]
+        y = msg[3]
+    elif len(msg) == 2:
+        replace = False
     else:
-        redditron.say(input.source, 'Only botadmins can do that.')
+        redditron.say(input.source, 'Format: bobsmantra word1 word2')
+        return
+    redditron.logger(strftime("%H:%M:%S")+" - starting to spam the mantra")
+    for m in mantra:
+        m= decode(m)
+        if replace == True:
+            m=m.replace('RACE', x.upper())
+            m=m.replace('race', x.lower())
+            m=m.replace('racist', x.lower()+'ist')
+            m=m.replace('WHITE', y.upper())
+            m=m.replace('white', y.lower())
+            m=m.replace('black', y.lower())
+            m=m.replace('BLACK', y.upper())
+        if redditron.waitfactor==0: waitfor=0
+        else: waitfor=len(m)/(redditron.waitfactor)
+        redditron.logger("waiting for "+str(waitfor))
+        time.sleep(waitfor)
+        redditron.say(input.source, str(m))
 bobsmantra.commands=['bobsmantra']
+bobsmantra.admin=1
 
 def setcooldown(redditron, input):
     msg=input.text
@@ -201,6 +207,7 @@ def setcooldown(redditron, input):
         redditron.logger(a)
         redditron.say(input.source,a)
 setcooldown.commands=['cooldown']
+setcooldown.admin=1
 
 def setwaitfactor(redditron, input):
     msg=input.text
@@ -210,8 +217,12 @@ def setwaitfactor(redditron, input):
          redditron.logger('waitfactor is now '+msg[2]+' second(s).')
          redditron.say(input.source,'Waitfactor is now '+msg[2]+' second(s).')
 setwaitfactor.commands=['waitfactor']
+setwaitfactor.admin=1
 
 def getquotes(redditron, input):
+    '''
+    Posts all the quotes for a tag (or just all the quotes) to pastebin.
+    '''
     msg=input.text
     msg = msg.split()
     if len(msg) ==2:
@@ -228,7 +239,9 @@ def getquotes(redditron, input):
 getquotes.commands=['getquotes']
 
 def twitterpost(redditron, input):
-    '''posts tweets for a hash on pastebin'''
+    '''
+    Posts a shitload of tweets for a hashtag to pastebin.
+    '''
     msg=input.text
     msg = msg.split()
     if msg[1] == 'twitterpost':
@@ -270,6 +283,9 @@ def getrandomtwitterpost2(redditron,input):
 
 
 def getrandomtwitterpost(redditron, input):
+    '''
+    Spams 5 tweets for a hashtag.
+    '''
     msg=input.text
     msg = msg.split()
     if msg[1] == 'twitter':
@@ -289,7 +305,9 @@ def getrandomtwitterpost(redditron, input):
 getrandomtwitterpost.commands=['twitter']
 
 def gettweets(redditron, input):
-    '''gets tweets for a user'''
+    '''
+    Spams 5 tweets for a user.
+    '''
     msg=input.text
     msg = msg.split()
     print msg
@@ -315,7 +333,8 @@ def changemode(redditron, input):
         redditron.freespeech = True
         redditron.logger('Entering FREE SPEECH mode...')
         redditron.say(input.source,'Entering FREE SPEECH mode...')
-changemode.commands=['freespeech','changemode']
+changemode.commands=['changemode']
+changemode.admin=1
 
 def gettags(redditron, input):
     link = _posttopastebin(redditron.responses.getkeys())
@@ -323,6 +342,9 @@ def gettags(redditron, input):
 gettags.commands=['triggers','tags','gettags','gettriggers']    
 
 def stats(redditron, input):
+    '''
+    Spams some quote-database statistics.
+    '''
     redditron.say(input.source, redditron.responses.stats())
 stats.commands=['stats','getstats']
 
@@ -330,34 +352,49 @@ def getuptime(redditron, input):
     redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=TIME)))
 getuptime.commands=['uptime','getuptime']
 
+def posthelpmsg(redditron,input):
+    msg=input.text.split()
+    if msg[1]=='help':
+        if len(msg)==2:
+            redditron.posthelpmsg(input.source)
+        else:
+            cmd=(' ').join(msg[2:])
+            commanddict=redditron.commands
+            for c in commanddict:
+                if cmd == c:
+                    redditron.say(input.source,commanddict[c].__doc__)
+posthelpmsg.commands=['help']
+
 def addredditry(redditron, input):
+    '''
+    Adds a quote to the database along with a tag. Format: $MYNICK: addquote "tag" "quote"'
+    '''
     responses=redditron.responses
     msgpart=input.text
-    if '"' in msgpart:
-        msg = msgpart.split('"')
-        if len(msg) == 5:
-            tag=msg[1]
-            response=msg[3]
-            redditron.logger(strftime("%H:%M:%S"))
-            c=responses.add(tag,response)
-            if c==0:
-                redditron.say(input.source,'Error.')
-                redditron.logger('error while adding quote')
-            elif c==1: 
-                responses.savetofile()
-                redditron.say(input.source, 'Added!')
-                redditron.logger("added:\n"+response+'\nwith the tag:\n'+tag)
-            elif c==2:
-                msg='The exact quote already exists.'
-                redditron.say(input.source,msg)
-                redditron.logger(msg)
-        else:
-            redditron.say(input.source, 'Format: '+redditron.nick+': addquote "tag" "quote"')
+    msg = msgpart.split('"')
+    if len(msg) == 5:
+        tag,response=msg[1],msg[3]
+        redditron.logger(strftime("%H:%M:%S"))
+        c=responses.add(tag,response)
+        if c==0:
+            redditron.say(input.source,'Error.')
+            redditron.logger('error while adding quote')
+        elif c==1: 
+            responses.savetofile()
+            redditron.say(input.source, 'Added!')
+            redditron.logger("added:\n"+response+'\nwith the tag:\n'+tag)
+        elif c==2:
+            msg='The exact quote already exists.'
+            redditron.say(input.source,msg)
+            redditron.logger(msg)
     else:
         redditron.say(input.source, 'Format: '+redditron.nick+': addquote "tag" "quote"')
 addredditry.commands=['addquote']
 
 def randomquote(redditron, input):
+    '''
+    Spams a random quote.
+    '''
     response=redditron.responses.randomquote()
     redditron.logger(strftime("%H:%M:%S"))
     redditron.logger('posting random response: '+response)
