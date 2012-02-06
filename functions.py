@@ -355,14 +355,15 @@ getuptime.commands=['uptime','getuptime']
 def posthelpmsg(redditron,input):
     msg=input.text.split()
     if msg[1]=='help':
+        commanddict=redditron.commands
         if len(msg)==2:
-            redditron.posthelpmsg(input.source)
+            redditron.say(input.source, 'List of commands: '+', '.join(commanddict.keys()))
         else:
             cmd=(' ').join(msg[2:])
-            commanddict=redditron.commands
             for c in commanddict:
                 if cmd == c:
-                    redditron.say(input.source,commanddict[c].__doc__)
+                    func=commanddict[c]
+                    redditron.say(input.source,func.__doc__)
 posthelpmsg.commands=['help']
 
 def addredditry(redditron, input):

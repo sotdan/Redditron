@@ -112,7 +112,7 @@ class Redditron(irc.Bot):
         self.write(('NICK',ch))
 
     def posthelpmsg(self,ch):
-        self.say(ch,'List of commands: '+', '.join(self.commands.keys()))
+        self.say(ch,)
 
     def input(self, origin, text, args):
         class CommandInput(unicode):
