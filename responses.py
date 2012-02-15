@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import cPickle as pickle
 import random, sys
 
@@ -65,11 +67,11 @@ class Responses(object):
 
    def detect(self, msg):
         '''checks if there are any triggers in a string'''
-        response, logmsg="",""
+        response=""
         keys = self.quotes.keys()
         detected=[]
         for key in keys:
-            if key in msg.lower():
+            if key+' ' in ' '+msg.lower()+' ' or ' '+key in ' '+msg.lower()+' ':
                 detected.append(key)
         if len(detected)>0:
             key = random.choice(detected)

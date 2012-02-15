@@ -54,53 +54,55 @@ class Redditron(irc.Bot):
     def dispatch(self, origin, args):
         # origin.sender = nick when PM, else chan
         bytes, event, args = args[0], args[1], args[2:]
-        text = decode(bytes)
+        msg = decode(bytes)
         if event=='251':
             self.startup()
         elif event=='366':
             self.logger('joined '+args[1])
-            input = self.input(origin, text, args)
+            input = self.input(origin, msg, args)
             input.source=args[1]
             functions._greet(self, input)
         elif event=='PRIVMSG':
-            input = self.input(origin, text, args)
-            self.respondtomsg(input)
-
-    def respondtomsg(self,input):
-        responded,msg = False, input.text
-        if self.freespeech:
-            if input.priv:
-                msg=self.nick+' '+msg
-            functions._freespeech(self,input)
-        else:
-            if not self.freespeech:
-                nickmatch = re.match(self.nick.lower()+'(:|,|\ )', msg.lower())
-                if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
-                    functions.detected(self,input)
-                elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
-                    functions.detected(self,input)
-                elif 'shut up' in msg or 'stfu' in msg:
-                    if self.nick in msg:
-                        functions.stfu(self,input)
-                elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
-                    functions._greet(self,input)
-                elif nickmatch or input.priv:
-                    msg=msg[len(self.nick):].lstrip()
-                    for c in self.commands:
-                        if c in msg:
-                            responded = self.commands[c](self,input)
-                            break
-                    for c in self.admincommands:
-                        if c in msg:
-                            if input.admin:
-                                responded=self.admincommands[c](self,input)
-                            else:
-                                self.say(input.source,'Only botadmins can do that.')
-                    if responded == False:
-                        responded = functions.detecttrigger(self,input)
-                    if responded == False:
-                        functions.fallback(self,input)
-                        responded = True
+            responded = False
+            if self.freespeech:
+                input = self.input(origin, msg, args)
+                if input.priv:
+                    input.text=self.nick+' '+msg
+                functions._freespeech(self,input)
+            else:
+                if not self.freespeech:
+                    input = self.input(origin, msg, args)
+                    nickmatch = re.match(self.nick.lower()+'(:|,|\ )', msg.lower())
+                    if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
+                        functions.detected(self,input)
+                    elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
+                        functions.detected(self,input)
+                    elif 'shut up' in msg or 'stfu' in msg:
+                        if self.nick in msg:
+                            functions.stfu(self,input)
+                    elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
+                        functions._greet(self,input)
+                    elif nickmatch or input.priv:
+                        if not input.priv:
+                            msg=msg[len(self.nick)+1:].lstrip()
+                            input =self.input(origin,msg,args)
+                        if msg:
+                            cmd=msg.split()[0]
+                            for c in self.commands:
+                                if c == cmd:
+                                    responded = self.commands[c](self,input)
+                                    break
+                            for c in self.admincommands:
+                                if c in cmd:
+                                    if input.admin:
+                                        responded=self.admincommands[c](self,input)
+                                    else:
+                                        self.say(origin.sender,'Only botadmins can do that.')
+                            if responded == False:
+                                responded = functions.detecttrigger(self,input)
+                            if responded == False:
+                                functions.fallback(self,input)
+                                responded = True
 
     def joinch(self,ch):
         self.write(('JOIN',ch))
@@ -110,9 +112,6 @@ class Redditron(irc.Bot):
 
     def nickch(self,ch):
         self.write(('NICK',ch))
-
-    def posthelpmsg(self,ch):
-        self.say(ch,)
 
     def input(self, origin, text, args):
         class CommandInput(unicode):
@@ -161,13 +160,15 @@ class Redditron(irc.Bot):
             waitfor = 0
         else:
             if self.freespeech: waitfor = 2+len(msg)/(self.waitfactor)
-            else: waitfor = len(msg)/(3*self.waitfactor)
+            else: waitfor = len(msg)/(4*self.waitfactor)
         self.logger('waiting for '+str(waitfor))
         time.sleep(waitfor)
         if self.connected:
             if isinstance(msg,str):
                 self.msg(ch,msg)
-            else: print 'WARNING - notastring: ',msg
+            else: 
+                print 'WARNING - notastring: ',msg
+                self.msg(ch,str(msg))
         else: print msg
         if cooldown and self.freespeech:
             self.startcooldown()
@@ -205,33 +206,34 @@ def main():
             self.nick='redditron'
             self.waitfactor=0
             self.cooldowntime=20
-            self.admins=['']
+            self.admins=['a']
             self.freespeech=False
-            self.exitfreespeechphrase = u"You're a cracker"
-            self.fallbackr = [u"what?"]
-            self.qfallbackr = [u"what?"]
-            self.botresponses = [u"not a bot."]
-            self.stfuresponses = [u"no."]
-            self.greetings = [u"hi."]
+            self.exitfreespeechphrase = "You're a cracker"
+            self.fallbackr = ["i don't understand you"]
+            self.qfallbackr = ["i don't understand your question"]
+            self.botresponses = ["not a bot."]
+            self.stfuresponses = ["no."]
+            self.greetings = ["hi."]
             self.cli=True
     class Origin(object):
         def __init__(self):
-            self.sender=('')
-            self.nick=('')
+            self.sender=('a')
+            self.nick=('a')
     config = BotConfig()
     bot=Redditron(config)
     origin=Origin()
     while True:
         msg= raw_input('>>')
-        input=bot.input(origin,msg,[''])
-        if msg == u'q':
+        if msg == 'q':
             sys.exit("Bye")
-        elif msg == u'r':
+        elif msg == 'r':
+            input=bot.input(origin,msg,[''])
+            input.priv=True
             functions.randomquote(bot,input)
-        elif msg == u'test':
+        elif msg == 'test':
             testallresponses(bot)
         else:
-            bot.respondtomsg(input)
+            bot.dispatch(origin,[msg.encode(),'PRIVMSG'])
 
 if __name__ == '__main__': 
    main()
