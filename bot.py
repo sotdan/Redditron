@@ -90,14 +90,19 @@ class Redditron(irc.Bot):
                             cmd=msg.split()[0]
                             for c in self.commands:
                                 if c == cmd:
-                                    responded = self.commands[c](self,input)
+                                    try: responded = self.commands[c](self,input)
+                                    except Exception, e:
+                                        self.error(origin)
                                     break
                             for c in self.admincommands:
-                                if c in cmd:
+                                if c == cmd:
                                     if input.admin:
-                                        responded=self.admincommands[c](self,input)
+                                        try: responded=self.admincommands[c](self,input)
+                                        except Exception, e:
+                                            self.error(origin)
                                     else:
                                         self.say(origin.sender,'Only botadmins can do that.')
+                                    break
                             if responded == False:
                                 responded = functions.detecttrigger(self,input)
                             if responded == False:

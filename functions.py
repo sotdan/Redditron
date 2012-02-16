@@ -1,4 +1,4 @@
-import random, re, time, datetime, sys,twitter
+import random, re, time, datetime, sys,twitter, ConfigParser
 from time import strftime
 from urllib import urlopen, urlencode
 
@@ -180,12 +180,6 @@ def bobsmantra(redditron, input):
 bobsmantra.commands=['bobsmantra']
 bobsmantra.admin=1
 
-def printsinput(redditron,input):
-    msg= input.split()[1:]
-    for m in msg:
-        redditron.say(input.source,m)
-printsinput.commands=['testinput']
-
 def setoption(redditron, input):
     cmd = input.split()
     option = cmd[0]
@@ -199,6 +193,26 @@ def setoption(redditron, input):
         redditron.say(input.source,a)
 setoption.commands=['cooldown','waitfactor']
 setoption.admin=1
+
+def ageofconsent(redditron,input):
+    '''
+    Tells you some interesting facts about a country.
+    '''
+    cmd = input.split()
+    aoc = ConfigParser.ConfigParser()
+    aoc.read(sys.path[0]+"/aoc.txt")
+    if len(cmd)>1:
+        country = ' '.join(cmd[1:])
+        try: age = aoc.get('agesofconsent', country.lower())
+        except: age = ''
+        if age:
+            msg='The age of consent in '+country+' is '+age+'.'
+        else: msg= "Sadly I don't know about the age of consent in "+cmd[1]
+    else: msg='What country do you want to know about?'
+    if not input.priv:
+        msg=input.nick+', '+msg[0].lower()+msg[1:]
+    redditron.say(input.source,msg)
+ageofconsent.commands=['aoc','ageofconsent']
 
 def getquotes(redditron, input):
     '''
@@ -236,7 +250,7 @@ def twitterpost(redditron, input):
         for l in p:
             result+=l.text+'\n\n'
     redditron.say(input.source, _posttopastebin(result))
-twitter.commands=['twitterpost']
+#twitter.commands=['twitterpost']
 
 def getrandomtwitterpost2(redditron,input):
     '''trying to remove the python-twitter dependency'''
@@ -321,7 +335,7 @@ stats.commands=['stats','getstats']
 
 def getuptime(redditron, input):
     redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=TIME)))
-getuptime.commands=['uptime','getuptime']
+#getuptime.commands=['uptime','getuptime']
 
 def posthelpmsg(redditron,input):
     '''
@@ -371,6 +385,22 @@ def addredditry(redditron, input):
     else:
         redditron.say(input.source, 'Format: '+redditron.nick+': addquote "tag" "quote"')
 addredditry.commands=['addquote']
+
+def quotegasm(redditron,input):
+    '''
+    spams a lot of words about something
+    '''
+    msg = input.split()
+    y = 5
+    if len(msg)==2:
+        try: y=int(msg[1])
+        except: pass
+    if msg[0] == 'paulgasm':
+        for x in range(0,y):
+            q=redditron.responses.getquotefor('ron paul')
+            redditron.postresponse(input.source,q)
+quotegasm.commands=['paulgasm']
+
 
 def randomquote(redditron, input):
     '''

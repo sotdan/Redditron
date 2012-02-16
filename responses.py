@@ -65,6 +65,21 @@ class Responses(object):
                q+=len(self.quotes[x])
        return 'There are '+str(len(tags))+' tags and '+str(q)+' quotes.'
 
+   def getquotefor(self,msg):
+       '''
+       returns a random quote for a tag
+       '''
+       response=""
+       try: responselist = self.quotes[msg]
+       except: return 'no quotes for '+msg
+       if len(responselist)==0: #this shouldn't happen anymore but w/e
+           response = 'error'
+           del self.quotes[key]
+           self.savetofile()
+           return ''
+       else:
+           return random.choice(responselist)
+
    def detect(self, msg):
         '''checks if there are any triggers in a string'''
         response=""
