@@ -10,7 +10,16 @@ def _freespeech(redditron,input):
         logger('exiting free speech mode')
         say(input.source,'...')
         return
-    if re.match(redditron.nick.lower()+'(:|,|\ )', input.lower()):
+    elif re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', input.lower()):
+        detected(redditron,input)
+    elif redditron.nick.lower() in input.lower() and 'a bot' in input.lower():
+        detected(redditron,input)
+    elif 'shut up' in input or 'stfu' in input:
+        if redditron.nick in input:
+            stfu(redditron,input)
+    elif re.match('h(ello|ey|i)\ '+ redditron.nick, input):
+        _greet(redditron,input)
+    elif re.match(redditron.nick.lower()+'(:|,|\ )', input.lower()):
         if redditron.cooldown == False:
             responded = detecttrigger(redditron,input)
         if responded == False:
@@ -152,7 +161,6 @@ def bobsmantra(redditron, input):
     Spams the mantra.
     '''
     msg=input.split()
-    mantra = open(sys.path[0]+"/bobsmantra.txt", 'rb')
     if len(msg) == 3:
         replace = True
         x,y = msg[1],msg[2]
@@ -161,22 +169,23 @@ def bobsmantra(redditron, input):
     else:
         redditron.say(input.source, 'Format: bobsmantra word1 word2')
         return
+    mantra = open(sys.path[0]+"/bobsmantra.txt", 'rb')
+    mantra =mantra.read()
     redditron.logger(strftime("%H:%M:%S")+" - starting to spam the mantra")
-    for m in mantra:
-        m= decode(m)
-        if replace == True:
-            m=m.replace('RACE', x.upper())
-            m=m.replace('race', x.lower())
-            m=m.replace('racist', x.lower()+'ist')
-            m=m.replace('WHITE', y.upper())
-            m=m.replace('white', y.lower())
-            m=m.replace('black', y.lower())
-            m=m.replace('BLACK', y.upper())
-        if redditron.waitfactor==0: waitfor=0
-        else: waitfor=len(m)/(redditron.waitfactor)
-        redditron.logger("waiting for "+str(waitfor))
-        time.sleep(waitfor)
-        redditron.say(input.source, str(m))
+#        m= decode(m)
+    if replace == True:
+        mantra=mantra.replace('RACE', x.upper())
+        mantra=mantra.replace('race', x.lower())
+        mantra=mantra.replace('racist', x.lower()+'ist')
+        mantra=mantra.replace('WHITE', y.upper())
+        mantra=mantra.replace('white', y.lower())
+        mantra=mantra.replace('black', y.lower())
+        mantra=mantra.replace('BLACK', y.upper())
+    #if redditron.waitfactor==0: waitfor=0
+    #else: waitfor=len(m)/(redditron.waitfactor)
+    #redditron.logger("waiting for "+str(waitfor))
+    #time.sleep(waitfor)
+    redditron.postresponse(input.source, mantra)
 bobsmantra.commands=['bobsmantra']
 bobsmantra.admin=1
 
@@ -205,9 +214,10 @@ def ageofconsent(redditron,input):
         country = ' '.join(cmd[1:])
         try: age = aoc.get('agesofconsent', country.lower())
         except: age = ''
+        country=country.title()
         if age:
             msg='The age of consent in '+country+' is '+age+'.'
-        else: msg= "Sadly I don't know about the age of consent in "+cmd[1]
+        else: msg= "Sadly I don't know about the age of consent in "+country
     else: msg='What country do you want to know about?'
     if not input.priv:
         msg=input.nick+', '+msg[0].lower()+msg[1:]

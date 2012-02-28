@@ -80,7 +80,7 @@ class Redditron(irc.Bot):
                     elif 'shut up' in msg or 'stfu' in msg:
                         if self.nick in msg:
                             functions.stfu(self,input)
-                    elif re.match('h(ello|ey|i)\ '+ self.nick, msg):
+                    elif re.match('h(ello|ey|i|eya)\ '+ self.nick, msg):
                         functions._greet(self,input)
                     elif nickmatch or input.priv:
                         if not input.priv:
@@ -140,16 +140,20 @@ class Redditron(irc.Bot):
         t.start()
 
     def postresponse(self,source,response):
-        '''splits the string into several lines and then posts it
         '''
+        splits the string into several lines and then posts it
+        '''
+        if '\n' in response:
+            for x in response.splitlines():
+                self.postresponse(source,x)
+                time.sleep(3)
+            return
         def splitintwo(response,lit):
             r=response.split(lit)
             self.postresponse(source, lit.join(r[:len(r)/2])+lit.strip())
             self.postresponse(source, lit.join(r[len(r)/2:]))
         if len(response) > 100:
-            if '\n' in response:
-                splitintwo(response, '\n')
-            elif '? ' in response:
+            if '? ' in response:
                 splitintwo(response, '? ')
             elif '; ' in response:
                 splitintwo(response, '; ')
@@ -166,7 +170,7 @@ class Redditron(irc.Bot):
         else:
             if self.freespeech: waitfor = 2+len(msg)/(self.waitfactor)
             else: waitfor = len(msg)/(4*self.waitfactor)
-        self.logger('waiting for '+str(waitfor))
+        self.logger('waiting for '+str(waitfor)+' before responding')
         time.sleep(waitfor)
         if self.connected:
             if isinstance(msg,str):

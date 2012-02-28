@@ -4,9 +4,9 @@ ident = bacon
 realname = i lurve reddit!
 admins = sotdan,dorkins,Ben
 password = neckbeard
-servers = irc.synirc.net/6667,irc.freenode.net/8001
+servers = irc.synirc.net/6667,irc.freenode.net/8001,irc.euirc.net/6667
 defaultserver = 1
-chans = #reddit,#srs,#r.trees
+chans = #reddit,#srs,#r.trees,#/int/
 freespeech = 0
 waitfactor =10
 cooldowntime = 20
@@ -19,7 +19,7 @@ r3 : wat
 r4 : Can you try phrasing your question with logic?
 r5 : Could you try asking rationally?
 r6 : Your question defies basic epistemology.
-r7 : I'm sorry but your question makes a whole slew of fallacious arguments.
+r7 : I'm sorry but your question makes a whole slew of fallacious assumptions.
 r8 : False.
 
 [fallbackresponses]
