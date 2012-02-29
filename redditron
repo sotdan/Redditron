@@ -94,7 +94,7 @@ def incrementtime():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Runs Redditron.')
+    parser = argparse.ArgumentParser(description='Redditron is an awesome IRC bot.')
     parser.add_argument('--verbose','-v',action='store_true')
     args = parser.parse_args()
     config= BotConfig(configfile)

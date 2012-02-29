@@ -411,6 +411,26 @@ def quotegasm(redditron,input):
             redditron.postresponse(input.source,q)
 quotegasm.commands=['paulgasm']
 
+def fucksrstk(redditron,input):
+    '''
+    sends a request to fucksrs.tk to check if a username belongs to an SRSer.
+    '''
+    msg = input.split()
+    if len(msg)==2:
+        nomenclature=random.choice(['SRSer','SRSister'])
+        url="http://fuckSRS.tk/main/api/"+msg[1]
+        try:
+            if urlopen(url).read()=='1':
+                response=msg[1]+' is an '+nomenclature+'.'
+            else: response=msg[1]+' is not an '+nomenclature+'.'
+        except:
+            response="Couldn't connect to fuckSRS.tk"
+    elif len(msg)==1:
+        response='gimme a nick so I can check'
+    else:
+        response='usernames are just one word, silly'
+    redditron.say(input.source,response)
+fucksrstk.commands=['isasrser','srscheck']
 
 def randomquote(redditron, input):
     '''
