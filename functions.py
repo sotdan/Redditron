@@ -1,4 +1,4 @@
-import random, re, time, datetime, sys,twitter, ConfigParser
+import random, re, time, datetime, sys, ConfigParser
 from time import strftime
 from urllib import urlopen, urlencode
 
@@ -245,6 +245,10 @@ def twitterpost(redditron, input):
     '''
     Posts a shitload of tweets for a hashtag to pastebin.
     '''
+    try: import twitter
+    except:
+        redditron.say(input.source,"I'm missing the twitter module")
+        return
     msg = input.split()[1:]
     tag = ' '.join(msg)
     redditron.logger(strftime("%H:%M:%S")+' - gettin posts for '+tag)
@@ -284,6 +288,10 @@ def getrandomtwitterpost(redditron, input):
     '''
     Spams 5 tweets for a hashtag.
     '''
+    try: import twitter
+    except:
+        redditron.say(input.source,"I'm missing the twitter module")
+        return
     msg = input.split()[1:]
     tag = ' '.join(msg)
     redditron.logger(strftime("%H:%M:%S")+' - gettin posts for '+tag)
@@ -301,6 +309,10 @@ def gettweets(redditron, input):
     '''
     Spams 5 tweets for a user.
     '''
+    try: import twitter
+    except:
+        redditron.say(input.source,"I'm missing the twitter module")
+        return
     msg = input.split()
     print msg
     msg = msg[1]
