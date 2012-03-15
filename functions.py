@@ -14,13 +14,21 @@ def _freespeech(redditron,input):
         detected(redditron,input)
     elif redditron.nick.lower() in input.lower() and 'a bot' in input.lower():
         detected(redditron,input)
-    elif 'shut up' in input or 'stfu' in input:
+    elif 'shut up' in input.lower() or 'stfu' in input.lower():
         if redditron.nick in input:
             stfu(redditron,input)
-    elif re.match('h(ello|ey|i)\ '+ redditron.nick, input):
+    elif re.match('h(ello|ey|i)\ '+ redditron.nick, input.lower()):
         _greet(redditron,input)
     elif re.match(redditron.nick.lower()+'(:|,|\ )', input.lower()):
         if redditron.cooldown == False:
+            msg = input.split(' ')
+            msg=(' ').join(msg[1:])
+            class Origin(object):
+                def __init__(self):
+                    self.sender=input.source
+                    self.nick=input.nick
+            origin = Origin()
+            input = redditron.input(origin, msg, input.args)
             responded = detecttrigger(redditron,input)
         if responded == False:
             fallback(redditron,input)
@@ -356,8 +364,10 @@ def stats(redditron, input):
 stats.commands=['stats','getstats']
 
 def getuptime(redditron, input):
-    redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=TIME)))
-#getuptime.commands=['uptime','getuptime']
+    seconds = time.time() - redditron.starttime
+    redditron.say(input.source, 'I have been up and running for %s seconds.' % seconds)
+    #redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=TIME)))
+getuptime.commands=['uptime']
 
 def posthelpmsg(redditron,input):
     '''

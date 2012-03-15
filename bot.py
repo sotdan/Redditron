@@ -24,6 +24,7 @@ class Redditron(irc.Bot):
         self.waitfactor=self.config.waitfactor
         self.cooldowntime=self.config.cooldowntime
         self.freespeech=self.config.freespeech
+        self.starttime=time.time()
         self.admins=self.config.admins
         self.connected= False
         self.cooldown = False
@@ -80,7 +81,7 @@ class Redditron(irc.Bot):
                     elif 'shut up' in msg or 'stfu' in msg:
                         if self.nick in msg:
                             functions.stfu(self,input)
-                    elif re.match('h(ello|ey|i|eya)\ '+ self.nick, msg):
+                    elif re.match('h(ello|ey|i|eya)\ '+ self.nick, msg.lower()):
                         functions._greet(self,input)
                     elif nickmatch or input.priv:
                         if not input.priv:
@@ -135,7 +136,7 @@ class Redditron(irc.Bot):
     def startcooldown(self):
         sleepfor = random.choice((self.cooldowntime/2, self.cooldowntime/4,
                                  self.cooldowntime*3, self.cooldowntime*2))
-        self.logger('sleeping for '+str(sleepfor))
+        self.logger('sleeping for '+str(sleepfor)+ ' seconds.')
         t = Thread(target=self.sleeper, args=(sleepfor,))
         t.start()
 
@@ -170,7 +171,7 @@ class Redditron(irc.Bot):
         else:
             if self.freespeech: waitfor = 2+len(msg)/(self.waitfactor)
             else: waitfor = len(msg)/(4*self.waitfactor)
-        self.logger('waiting for '+str(waitfor)+' before responding')
+        self.logger('waiting for '+str(waitfor)+' second(s) before responding')
         time.sleep(waitfor)
         if self.connected:
             if isinstance(msg,str):
