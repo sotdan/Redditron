@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import cPickle as pickle
-import random, sys, unicodedata
+import random, sys, unicodedata, sqlite3
 
 def decode(bytes):
     try: text = bytes.decode('utf-8')
@@ -13,213 +12,108 @@ def decode(bytes):
 
 class Responses(object):
    
-   def __init__(self):
-       self.quotes = self.loaddb()
+    def __init__(self):
+        self.con = sqlite3.connect('rq.db')
 
-   def loaddb(self):
-       x=''
-       try:
-           output=open(sys.path[0]+"/responses.dat")
-           x=pickle.load(output)
-           output.close()
-       except:pass
-       if isinstance(x, dict):
-           return x
-       else: 
-           print 'responsefile is not a dict'
-           return {}
+    def getkeys(self):
+        cur = self.con.cursor()
+        cur.execute("select tag from tags")
+        return ('\n').join([row[0] for row in cur.fetchall()])
 
-   def checkiffilechanged(self):
-       fromfile = self.loaddb
-       if self.quotes!=fromfile:
-           self.quotes=fromfile
+    def stats(self):
+        cur = self.con.cursor()
+        cur.execute("select id from tags")
+        tags = cur.fetchall()
+        cur.execute("select id from quotes")
+        q = cur.fetchall()
+        return 'There are '+str(len(tags))+' tags and '+str(len(q))+' quotes.'
 
-   def savetofile(self):
-       if self.quotes != self.loaddb():
-           print 'saving.'
-           output = open(sys.path[0]+"/responses.dat",'wb')
-           if isinstance(self.quotes, dict):
-               pickle.dump(self.quotes, output)
-               return 1#saved
-           else: 
-               print 'quotes are not a dict'
-               return 0#didn't save
-           output.close()
-       else: print 'nothing new to save'
-       return 0
+    def getquotefor(self,msg):
+        '''
+        returns a random quote for a tag
+        '''
+        cur = self.con.cursor()
+        cur.execute("select id from tags where (tag = {0})".format(msg))
+        responses = [row[0] for row in cur.fetchall()]
+        try: return random.choice(responses)
+        except: return 'no quotes for '+msg
 
-   def getkeys(self):
-       r=''
-       for x in self.quotes.keys():
-           r += x+'\n'
-       return r.strip()
-
-   def stats(self):
-       tags=self.quotes.keys()
-       q = 0
-       for x in tags:
-           if self.quotes[x] == None:
-               print 'removing '+x
-               del self.quotes[x]
-           else:
-               q+=len(self.quotes[x])
-       return 'There are '+str(len(tags))+' tags and '+str(q)+' quotes.'
-
-   def getquotefor(self,msg):
-       '''
-       returns a random quote for a tag
-       '''
-       response=""
-       try: responselist = self.quotes[msg]
-       except: return 'no quotes for '+msg
-       if len(responselist)==0: #this shouldn't happen anymore but w/e
-           response = 'error'
-           del self.quotes[key]
-           self.savetofile()
-           return ''
-       else:
-           return random.choice(responselist)
-
-   def detect(self, msg):
+    def detect(self, msg):
         '''checks if there are any triggers in a string'''
+        cur = self.con.cursor()
+        cur.execute("select id, tag from tags")
+        tags = [dict(id= row[0],tag= row[1]) for row in cur.fetchall()]
         response=""
-        keys = self.quotes.keys()
         detected=[]
-        for key in keys:
-            if key+' ' in ' '+msg.lower()+' ' or ' '+key in ' '+msg.lower()+' ':
-                detected.append(key)
+        for t in tags:
+            if t['tag']+' ' in ' '+msg.lower()+' ' or ' '+t['tag'] in ' '+msg.lower()+' ':
+                detected.append(t)
         if len(detected)>0:
             key = random.choice(detected)
-            if self.quotes[key] ==None:
-                response = 'error'
-            else: 
-                responselist = self.quotes[key]
-                if len(responselist)==0: #this shouldn't happen anymore but w/e
-                    response = 'error'
-                    del self.quotes[key]
-                    self.savetofile()
-                else:
-                    response = str(random.choice(responselist))
-        return detected, response
+            cur.execute('select qid from connections where (tid = {0})'.format(key['id']))
+            qids = [row[0] for row in cur.fetchall()]
+            if len(qids)>0:
+                qid = random.choice(qids)
+                cur.execute('select quote from quotes where (id = {0})'.format(qid))
+                response = str(cur.fetchall()[0][0])
+        return [d['tag'] for d in detected], response
 
-   def getresponses(self, msg):
-       '''Returns all the responses for a tag'''
-       response =""
-       try:
-           responselist = self.quotes[msg]
-           response='Quotes about %s:\n\n' % msg.upper()
-           for q in responselist:
-               response+=q+'\n\n'
-           return True, response
-       except: return False, "No quotes about '%s'" % msg
+    def getresponses(self, msg):
+        '''Returns all the responses for a tag'''
+        cur = self.con.cursor()
+        cur.execute("select id from tags where (tag = '{0}')".format(msg))
+        rows = cur.fetchall()
+        if len(rows) >0:
+            quotes = []
+            tid = rows[0][0]
+            cur.execute('select qid from connections where (tid = {0})'.format(tid))
+            for row in cur.fetchall():
+                cur.execute('select quote from quotes where (id = {0})'.format(row[0]))
+                quotes.append(cur.fetchall()[0][0])
+            response='Quotes about %s:\n\n' % msg.upper()
+            return response+('\n\n').join(quotes)
+        else: return False, "No quotes about '%s'" % msg
 
-   def getresponseslist(self):
-       '''returns a list with all the responses'''
-       r=[]
-       for x in self.quotes.keys():
-           if self.quotes[x] != None:
-               for y in self.quotes[x]:
-                   r.append(str(y))
-       return r
-
-   def getstring(self):
-       '''Returns the db as a fancy string'''
-       r=""
-       for x in self.quotes.keys():
-           if self.quotes[x] != None:
-               for y in self.quotes[x]:
-                   r+=(decode(x)+' --- '+decode(y)+'\n\n')
-       return r.encode('utf-8')
-   
-   def searchdb(self, lit):
-       '''Returns a list of qid-tag-quote lists'''
-       result=[]
-       xid=0
-       for x in self.quotes.keys():
-           xid+=1
-           if self.quotes[x] != None:
-               yid=0
-               for y in self.quotes[x]:
-                   yid+=1
-                   if lit in y:
-                       qid=[xid,yid]
-                       result.append([qid,x,y])
-       return result
-   
-   def getallqids(self):
-       '''returns a list of all quote IDs'''
-       result=[]
-       xid=0
-       for x in self.quotes.keys():
-           xid+=1
-           if self.quotes[x] != None:
-               yid=0
-               for y in self.quotes[x]:
-                   yid+=1
-                   result.append([xid,yid])
-       return result
-
-   def getquoteforqid(self,tagid,responseid):
-       xid=0
-       result=[]
-       for x in self.quotes.keys():
-           xid+=1
-           if xid==tagid:
-               if self.quotes[x] != None:
-                   yid=0
-                   for y in self.quotes[x]:
-                       yid+=1
-                       if responseid==yid:
-                           result= [x,y]
-       return result
-                       
-   def deletequote(self,xid,yid):
-       quote=self.getquoteforqid(xid,yid)
-       self.quotes[quote[0]].remove(quote[1])
-       if len(self.quotes[quote[0]]) == 0:
-           del self.quotes[quote[0]]
-       self.savetofile()
-
-   def deletequoteprompt(self,tagid,responseid):
-       quote= self.getquoteforqid(tagid,responseid)
-       if quote==[]:
-           print 'quote not found'
-       else:
-           print 'are you sure want to delete: '
-           print quote[0]+' - '+quote[1]
-           print '? (y/n)'
-           msg= raw_input('>>')
-           if msg =='y' or msg=='Y':
-               self.deletequote(tagid,responseid)
-           else: print 'aborted.'
-
-   def randomquote(self):
-       vals=self.quotes.values()
-       r = random.choice(vals)
-       return str(random.choice(r))
+    def randomquote(self):
+        cur = self.con.cursor()
+        cur.execute("select quote from quotes")
+        return random.choice(cur.fetchall())[0]
   
-   def add(self, tag, response):
-       '''return codes:
-       0: error - 1: added - 2: quote already exists
-       '''
-       response=unicodedata.normalize('NFKD', response).encode('ascii','ignore')
-       tag=unicodedata.normalize('NFKD', tag.lower()).encode('ascii','ignore')
-       tagalreadyexists=False
-       for t in self.quotes.keys():
-           if tag == t and isinstance(t,str):
-               tagalreadyexists=True
-       if tagalreadyexists:
-           if self.quotes[tag]==None:
-               return 0
-           else:
-               alreadyexists=False
-               for q in self.quotes[tag]:
-                   if response == q and isinstance(q,str):
-                       alreadyexists=True
-               if alreadyexists: return 2
-               else:
-                   self.quotes[tag].append(response)
-                   return 1
-       else:
-           self.quotes[tag] = [response]
-           return 1
+    def add(self, tag, quote):
+        '''
+        adds a quote to the database
+        '''
+        
+        if isinstance(tag, unicode):
+            pass
+        else: tag=unicode(tag.lower())
+        if isinstance(quote, unicode):
+            pass
+        else: quote=unicode(quote)
+        cur = self.con.cursor()
+        cur.execute("select id from tags where (tag = '{0}')".format(tag))
+        rows = cur.fetchall()
+        tagexists= False
+        if len(rows) != 0:
+            tagexists, tid = True, rows[0][0]
+        else:
+            cur.execute(u'insert into tags (tag) values ("{0}")'.format(tag))
+            tid = cur.lastrowid
+            self.con.commit()
+        cur.execute(u'select id from quotes where (quote ="{0}")'.format(quote))
+        rows = cur.fetchall()
+        if len(rows) == 0:
+            cur.execute(u"insert into quotes (quote) values (?)", [quote])
+            qid = cur.lastrowid
+            cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
+            self.con.commit()
+            return 'Added a new quote to the tag "{0}".'.format(tag)
+        else:
+            if tagexists:
+                return "The exact quote already exists."
+            else:
+                qid = rows[0][0]
+                cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
+                self.con.commit()
+                return 'Added a new tag to the quote.'
+

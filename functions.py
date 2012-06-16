@@ -402,18 +402,9 @@ def addredditry(redditron, input):
     if len(msg) == 5:
         tag,response=msg[1],msg[3]
         redditron.logger(strftime("%H:%M:%S"))
-        c=responses.add(tag,response)
-        if c==0:
-            redditron.say(input.source,'Error.')
-            redditron.logger('error while adding quote')
-        elif c==1: 
-            responses.savetofile()
-            redditron.say(input.source, 'Added!')
-            redditron.logger("added:\n"+response+'\nwith the tag:\n'+tag)
-        elif c==2:
-            msg='The exact quote already exists.'
-            redditron.say(input.source,msg)
-            redditron.logger(msg)
+        response=responses.add(tag,response)
+        redditron.say(input.source,response)
+        redditron.logger(response)
     else:
         redditron.say(input.source, 'Format: '+redditron.nick+': addquote "tag" "quote"')
 addredditry.commands=['addquote']
@@ -471,7 +462,7 @@ def detecttrigger(redditron, input):
     else:
         if len(detected)>0:
             redditron.logger(strftime("%H:%M:%S"))
-            redditron.logger('detected: '+str(detected))
+            redditron.logger('detected: '+(', ').join(detected))
             redditron.logger('response: '+response)
             redditron.postresponse(input.source, response)
             return True
