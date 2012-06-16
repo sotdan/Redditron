@@ -1,9 +1,17 @@
-import sys, cPickle, responses
+import sys, cPickle, responses, sqlite3, unicodedata
 '''
 loads quotes from a txt file to a pickle file'''
 
 
 RESPONSES = responses.Responses()
+
+def decode(bytes):
+    try: text = bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        try: text = bytes.decode('iso-8859-1')
+        except UnicodeDecodeError:
+            text = bytes.decode('cp1252')
+    return text
 
 
 def writetotxtfile(args):
@@ -118,13 +126,52 @@ def delete(args):
         else: print 'args need to be digits'
     else: print 'needs args'
 
+def todb(args):
+    if len(args) == 1:
+        con = sqlite3.connect(args[0])
+        cur = con.cursor()
+        for qid in RESPONSES.getallqids():
+            tagquote= RESPONSES.getquoteforqid(qid[0],qid[1])
+            tagquote[0] = decode(tagquote[0])
+            tagquote[1] = decode(tagquote[1])
+            if isinstance(tagquote[0], unicode):
+                tag = tagquote[0]
+            else: tag=unicode(tagquote[0].lower())
+            if isinstance(tagquote[1], unicode):
+                quote = tagquote[1]
+            else: quote=unicode(tagquote[1])
+            cur.execute(u'select id from tags where (tag = "{0}")'.format(tag))
+            rows = cur.fetchall()
+            if len(rows) == 0:
+                cur.execute(u'insert into tags (tag) values (?)',
+                        [tag])
+                tid = cur.lastrowid
+                con.commit()
+            else:
+                tid = rows[0][0]
+            cur.execute(u'select id from quotes where (quote = "{0}")'.format(quote))
+            rows = cur.fetchall()
+            if len(rows) == 0:
+                cur.execute(u'insert into quotes (quote) values (?)',
+                     [quote])
+                qid = cur.lastrowid
+                con.commit()
+            else:
+                qid = rows[0][0]
+            cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
+            con.commit()
+            print "added "+str(tagquote)+" in "+str(tid)+", "+str(qid)
+    else:
+        print "needs an arg"
+
+
 def main():
     while True:
         msg= raw_input('>>')
         if msg == u'q':
             sys.exit("Bye")
         if msg == u'help':
-            print 'stats | addresponses | writetotxtfile | reviewquotes'
+            print 'stats | addresponses | writetotxtfile | reviewquotes | todb'
         else:
             args=[]
             if len(msg.split())>1:
@@ -132,10 +179,10 @@ def main():
                 args=msg[1:]
                 msg=msg[0]
             msg = msg+'(args)'
-            #eval(msg)
-            try: eval(msg)
-            except: 
-                print sys.exc_info()
+            eval(msg)
+            #try: eval(msg)
+            #except: 
+            #    print sys.exc_info()
 
 
 if __name__ == '__main__': 

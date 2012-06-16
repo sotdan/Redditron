@@ -17,7 +17,7 @@ def decode(bytes):
 class Redditron(irc.Bot):
     def __init__(self, config):
         if not hasattr(config,'cli'):
-            args = (config.nick, config.realname, config.chanlist, config.nspassword)
+            args = (config.nick, config.ident, config.realname, config.chanlist, config.nspassword)
             irc.Bot.__init__(self, *args)
         self.config = config
         self.nick = self.config.nick
@@ -28,6 +28,7 @@ class Redditron(irc.Bot):
         self.admins=self.config.admins
         self.connected= False
         self.cooldown = False
+        self.kicked = False
         self.responses = responses.Responses()
         self.setup()
     
@@ -56,13 +57,21 @@ class Redditron(irc.Bot):
         # origin.sender = nick when PM, else chan
         bytes, event, args = args[0], args[1], args[2:]
         msg = decode(bytes)
-        if event=='251':
+        if event =='KICK':
+            self.logger('KICKED from '+args[0])
+            self.kicked = True
+            self.joinch(args[0])
+        elif event=='251':
             self.startup()
         elif event=='366':
             self.logger('joined '+args[1])
             input = self.input(origin, msg, args)
             input.source=args[1]
-            functions._greet(self, input)
+            if self.kicked:
+                functions.stfu(self, input)
+                self.kicked = False
+            else: 
+                functions._greet(self, input)
         elif event=='PRIVMSG':
             responded = False
             if self.freespeech:
@@ -81,7 +90,7 @@ class Redditron(irc.Bot):
                     elif 'shut up' in msg or 'stfu' in msg:
                         if self.nick in msg:
                             functions.stfu(self,input)
-                    elif re.match('h(ello|ey|i|eya)\ '+ self.nick, msg.lower()):
+                    elif re.match('h(ai|ello|ey|i|eya)\ '+ self.nick, msg.lower()):
                         functions._greet(self,input)
                     elif nickmatch or input.priv:
                         if not input.priv:

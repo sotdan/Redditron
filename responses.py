@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import cPickle as pickle
-import random, sys
+import random, sys, unicodedata
 
 def decode(bytes):
     try: text = bytes.decode('utf-8')
@@ -202,8 +202,8 @@ class Responses(object):
        '''return codes:
        0: error - 1: added - 2: quote already exists
        '''
-       response=str(response)
-       tag=str(tag.lower())
+       response=unicodedata.normalize('NFKD', response).encode('ascii','ignore')
+       tag=unicodedata.normalize('NFKD', tag.lower()).encode('ascii','ignore')
        tagalreadyexists=False
        for t in self.quotes.keys():
            if tag == t and isinstance(t,str):
