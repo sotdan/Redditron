@@ -6,6 +6,7 @@ from threading import Thread
 from threading import Timer
 from time import strftime
 
+
 def decode(bytes):
     try: text = bytes.decode('utf-8')
     except UnicodeDecodeError:
@@ -19,6 +20,8 @@ class Redditron(irc.Bot):
         if not hasattr(config,'cli'):
             args = (config.nick, config.ident, config.realname, config.chanlist, config.nspassword)
             irc.Bot.__init__(self, *args)
+        self.uptime = 0
+        self.stack = [0]
         self.config = config
         self.nick = self.config.nick
         self.waitfactor=self.config.waitfactor
@@ -73,51 +76,76 @@ class Redditron(irc.Bot):
             else: 
                 functions._greet(self, input)
         elif event=='PRIVMSG':
-            responded = False
             if self.freespeech:
                 input = self.input(origin, msg, args)
                 if input.priv:
                     input.text=self.nick+' '+msg
                 functions._freespeech(self,input)
             else:
-                if not self.freespeech:
-                    input = self.input(origin, msg, args)
-                    nickmatch = re.match(self.nick.lower()+'(:|,|\ )', msg.lower())
-                    if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
-                        functions.detected(self,input)
-                    elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
-                        functions.detected(self,input)
-                    elif 'shut up' in msg or 'stfu' in msg:
-                        if self.nick in msg:
-                            functions.stfu(self,input)
-                    elif re.match('h(ai|ello|ey|i|eya)\ '+ self.nick, msg.lower()):
-                        functions._greet(self,input)
-                    elif nickmatch or input.priv:
-                        if not input.priv:
-                            msg=msg[len(self.nick)+1:].lstrip()
-                            input =self.input(origin,msg,args)
-                        if msg:
-                            cmd=msg.split()[0]
-                            for c in self.commands:
-                                if c == cmd:
-                                    try: responded = self.commands[c](self,input)
-                                    except Exception, e:
-                                        self.error(origin)
-                                    break
-                            for c in self.admincommands:
-                                if c == cmd:
-                                    if input.admin:
-                                        try: responded=self.admincommands[c](self,input)
-                                        except Exception, e:
-                                            self.error(origin)
-                                    else:
-                                        self.say(origin.sender,'Only botadmins can do that.')
-                                    break
-                            if responded == False:
-                                responded = functions.detecttrigger(self,input)
-                            if responded == False:
-                                functions.fallback(self,input)
-                                responded = True
+                input = self.input(origin, msg, args)
+                self.checkforvarioustriggers(input, origin, msg, args)
+
+
+    def checkforspam(self, input):
+        if (time.time() - self.stack[0]) < 100:
+            functions.leave(self, input)
+            return False
+        else:
+            self.stack.append(time.time())
+            self.stack = self.stack[-6:]
+            return True
+
+    def checkforvarioustriggers(self, input, origin, msg, args):
+        nickmatch = re.match(self.nick.lower()+'(:|,|\s)', msg, re.I)
+        if re.match('(redditron(.*)a bot)|(a bot(.*)redditron)', msg.lower()):
+            if self.checkforspam(input):
+                functions.detected(self,input)
+        elif self.nick.lower() in msg.lower() and 'a bot' in msg.lower():
+            if self.checkforspam(input):
+                functions.detected(self,input)
+        elif 'shut up' in msg or 'stfu' in msg:
+            if self.nick in msg:
+                if self.checkforspam(input):
+                    functions.stfu(self,input)
+        elif re.match('(yo|dear|h(ai|ello|ey(a)?|i))\s'+ self.nick, msg, re.I):
+            if self.checkforspam(input):
+                functions._greet(self,input)
+        elif nickmatch or input.priv:
+            if self.checkforspam(input):
+                if not input.priv:
+                    msg=msg[len(self.nick)+1:].lstrip()
+                    input =self.input(origin,msg,args)
+                self.checkforcommands(input)
+        else:
+            return False
+        return True
+
+    def checkforcommands(self, input):
+        responded = False
+        msg = input.text
+        if msg:
+            cmd=msg.split()[0]
+            for c in self.commands:
+                if c == cmd:
+                    try: responded = self.commands[c](self,input)
+                    except Exception, e:
+                        self.error(origin)
+                    break
+            for c in self.admincommands:
+                if c == cmd:
+                    if input.admin:
+                        try: responded=self.admincommands[c](self,input)
+                        except Exception, e:
+                            self.error(input.source)
+                    else:
+                        self.say(input.source,'Only botadmins can do that.')
+                    break
+            if responded == False:
+                responded = functions.detecttrigger(self,input)
+            if responded == False:
+                functions.fallback(self,input)
+                responded = True   
+
 
     def joinch(self,ch):
         self.write(('JOIN',ch))
@@ -202,6 +230,11 @@ class Redditron(irc.Bot):
     def logger(self, msg):
         if self.connected:
             print msg
+
+    def incrementtime(self):
+        redditron.time+=1
+        t = Timer(1.0, incrementtime)
+        t.start()
 
 def testallresponses(redditron):
     storewf, redditron.waitfactor = redditron.waitfactor, 0

@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
-import socket, time, bot, sys, argparse, ConfigParser
-from threading import Timer
+import socket, bot, argparse, ConfigParser
 
-
-
-TIME=0 #Timer time.
-configfile = sys.path[0]+"/redditronrc"
+#configfile = sys.path[0]+"/redditronrc"
+configfile = "redditronrc.txt"
 
 class BotConfig(object):
     def __init__(self, configfile):
         conf = ConfigParser.ConfigParser()
         conf.read(configfile)
         self.nick = self.pickanick(conf.get('botconfig', 'nick'))
- 
+
         print 'nick: '+self.nick
 
         self.waitfactor = conf.getint('botconfig', 'waitfactor')
@@ -34,6 +31,7 @@ class BotConfig(object):
         self.qfallbackr = readlistfromconf('fallbackresponsesq')
         self.botresponses = readlistfromconf('botresponses')
         self.stfuresponses = readlistfromconf('stfuresponses')
+        self.spamresponses = readlistfromconf('spamresponses')
         self.greetings = readlistfromconf('greetings')
         print 'done'
 
@@ -61,7 +59,7 @@ class BotConfig(object):
         msg= raw_input('>> enter a number: ')
         try: return servers[int(msg)-1]
         except: return defaultserver
-   
+
     def pickfreespeech(self,defaultfreespeech):
         msg=raw_input('>> enable free speech?(default: %s)'  % defaultfreespeech)
         if msg=='y':
@@ -86,13 +84,6 @@ class BotConfig(object):
         print 'joining: '+ str(result)
         return result
 
-def incrementtime():
-    global TIME
-    TIME=TIME+1
-    t = Timer(1.0, incrementtime)
-    t.start()
-
-
 def main():
     parser = argparse.ArgumentParser(description='Redditron is an awesome IRC bot.')
     parser.add_argument('--verbose','-v',action='store_true')
@@ -102,5 +93,5 @@ def main():
     redditron = bot.Redditron(config)
     redditron.run(config.host, config.port)
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
    main()

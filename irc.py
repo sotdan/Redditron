@@ -37,7 +37,6 @@ class Bot(asynchat.async_chat):
 
         self.verbose = True
         self.channels = channels or []
-        self.stack = []
 
         import threading
         self.sending = threading.RLock()
@@ -134,37 +133,18 @@ class Bot(asynchat.async_chat):
             except UnicodeEncodeError, e:
                 return
 
-        # No messages within the last 3 seconds? Go ahead!
-        # Otherwise, wait so it's been at least 0.8 seconds + penalty
-        if self.stack:
-            elapsed = time.time() - self.stack[-1][0]
-            if elapsed < 3:
-                penalty = float(max(0, len(text) - 50)) / 70
-                wait = 0.8 + penalty
-                if elapsed < wait:
-                    time.sleep(wait - elapsed)
-
-        # Loop detection
-        messages = [m[1] for m in self.stack[-8:]]
-        if messages.count(text) >= 5:
-            text = '...'
-            if messages.count('...') >= 3:
-                self.sending.release()
-                return
-
         def safe(input):
             input = input.replace('\n', '')
             return input.replace('\r', '')
         self.__write(('PRIVMSG', safe(recipient)), safe(text))
-        self.stack.append((time.time(), text))
-        self.stack = self.stack[-10:]
+
 
         self.sending.release()
 
     def notice(self, dest, text):
         self.write(('NOTICE', dest), text)
 
-    def error(self, origin):
+    def error(self, source):
         try:
             import traceback
             trace = traceback.format_exc()
@@ -179,8 +159,8 @@ class Bot(asynchat.async_chat):
                     break
             else: report.append('source unknown')
 
-            self.msg(origin.sender, report[0] + ' (' + report[1] + ')')
-        except: self.msg(origin.sender, "Got an error.")
+            self.msg(source, report[0] + ' (' + report[1] + ')')
+        except: self.msg(source, "Got an error.")
 
 class TestBot(Bot):
     def f_ping(self, origin, match, args):

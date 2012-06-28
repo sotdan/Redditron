@@ -354,7 +354,15 @@ def gettags(redditron, input):
     '''
     link = _posttopastebin(redditron.responses.getkeys())
     redditron.say(input.source, link)
-gettags.commands=['triggers','tags','gettags','gettriggers']    
+gettags.commands=['tags','triggers']
+
+def hint(redditron, input):
+    '''
+    posts a random sample of tags
+    '''
+    sample = redditron.responses.getsample()
+    redditron.say(input.source, "AMA about "+sample+", etc..")
+hint.commands=['tip']
 
 def stats(redditron, input):
     '''
@@ -365,8 +373,8 @@ stats.commands=['stats','getstats']
 
 def getuptime(redditron, input):
     seconds = time.time() - redditron.starttime
-    redditron.say(input.source, 'I have been up and running for %s seconds.' % seconds)
-    #redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=TIME)))
+    #redditron.say(input.source, 'I have been up and running for %s seconds.' % seconds)
+    redditron.say(input.source, 'Uptime: '+str(datetime.timedelta(seconds=seconds)))
 getuptime.commands=['uptime']
 
 def posthelpmsg(redditron,input):
@@ -453,7 +461,7 @@ def randomquote(redditron, input):
     redditron.logger(strftime("%H:%M:%S"))
     redditron.logger('posting random response: '+response)
     redditron.postresponse(input.source,response)
-randomquote.commands=['randomquote','random']
+randomquote.commands=['random']
 
 def detecttrigger(redditron, input):
     detected, response = redditron.responses.detect(input.strip())
@@ -467,6 +475,18 @@ def detecttrigger(redditron, input):
             redditron.postresponse(input.source, response)
             return True
     return False
+
+def leave(redditron,input):
+    reply= random.choice(redditron.config.spamresponses)
+    chan = input.source
+    redditron.postresponse(chan, reply)
+    msg =input.split()
+    redditron.logger(strftime("%H:%M:%S"))
+    redditron.logger("parting "+chan+" due to spam")
+    redditron.partch(chan)
+    time.sleep(600)
+    redditron.joinch(chan)
+
 
 
 

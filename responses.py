@@ -11,7 +11,7 @@ def decode(bytes):
     return text
 
 class Responses(object):
-   
+
     def __init__(self):
         self.con = sqlite3.connect('rq.db')
 
@@ -19,6 +19,11 @@ class Responses(object):
         cur = self.con.cursor()
         cur.execute("select tag from tags")
         return ('\n').join([row[0] for row in cur.fetchall()])
+
+    def getsample(self):
+        cur = self.con.cursor()
+        cur.execute("select tag from tags")
+        return (', ').join([row[0] for row in random.sample(cur.fetchall(), 7)])
 
     def stats(self):
         cur = self.con.cursor()
@@ -33,7 +38,7 @@ class Responses(object):
         returns a random quote for a tag
         '''
         cur = self.con.cursor()
-        cur.execute("select id from tags where (tag = {0})".format(msg))
+        cur.execute("select id from tags where (tag = '{0}')".format(msg))
         responses = [row[0] for row in cur.fetchall()]
         try: return random.choice(responses)
         except: return 'no quotes for '+msg
@@ -78,12 +83,12 @@ class Responses(object):
         cur = self.con.cursor()
         cur.execute("select quote from quotes")
         return random.choice(cur.fetchall())[0]
-  
+
     def add(self, tag, quote):
         '''
         adds a quote to the database
         '''
-        
+
         if isinstance(tag, unicode):
             pass
         else: tag=unicode(tag.lower())
