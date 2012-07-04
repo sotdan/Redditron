@@ -20,10 +20,11 @@ class Responses(object):
         cur.execute("select tag from tags")
         return ('\n').join([row[0] for row in cur.fetchall()])
 
-    def getsample(self):
+    def getsample(self, amount):
+        '''returns a list with a random sample of tags.'''
         cur = self.con.cursor()
         cur.execute("select tag from tags")
-        return (', ').join([row[0] for row in random.sample(cur.fetchall(), 7)])
+        return (', ').join([row[0] for row in random.sample(cur.fetchall(), amount)])
 
     def stats(self):
         cur = self.con.cursor()
@@ -38,10 +39,13 @@ class Responses(object):
         returns a random quote for a tag
         '''
         cur = self.con.cursor()
-        cur.execute("select id from tags where (tag = '{0}')".format(msg))
-        responses = [row[0] for row in cur.fetchall()]
-        try: return random.choice(responses)
-        except: return 'no quotes for '+msg
+        cur.execute('select id from tags where (tag = "{0}")'.format(msg))
+        tid = cur.fetchall()[0][0]
+        cur.execute('select qid from connections where (tid = {0})'.format(tid))
+        qids = [row[0] for row in cur.fetchall()]
+        qid = random.choice(qids)
+        cur.execute("select quote from quotes where (id = {0})".format(qid))
+        return str(cur.fetchall()[0][0])
 
     def detect(self, msg):
         '''checks if there are any triggers in a string'''
@@ -66,7 +70,7 @@ class Responses(object):
     def getresponses(self, msg):
         '''Returns all the responses for a tag'''
         cur = self.con.cursor()
-        cur.execute("select id from tags where (tag = '{0}')".format(msg))
+        cur.execute('select id from tags where (tag = "{0}")'.format(msg))
         rows = cur.fetchall()
         if len(rows) >0:
             quotes = []
@@ -75,7 +79,7 @@ class Responses(object):
             for row in cur.fetchall():
                 cur.execute('select quote from quotes where (id = {0})'.format(row[0]))
                 quotes.append(cur.fetchall()[0][0])
-            response='Quotes about %s:\n\n' % msg.upper()
+            response=len(quotes)+' quotes about %s:\n\n' % msg.upper()
             return response+('\n\n').join(quotes)
         else: return False, "No quotes about '%s'" % msg
 
@@ -96,29 +100,35 @@ class Responses(object):
             pass
         else: quote=unicode(quote)
         cur = self.con.cursor()
-        cur.execute("select id from tags where (tag = '{0}')".format(tag))
+
+        #add the tag if it doesn't exist
+        cur.execute(u'select id from tags where (tag = "{0}")'.format(tag))
         rows = cur.fetchall()
-        tagexists= False
         if len(rows) != 0:
-            tagexists, tid = True, rows[0][0]
+            tid = rows[0][0]
         else:
             cur.execute(u'insert into tags (tag) values ("{0}")'.format(tag))
             tid = cur.lastrowid
             self.con.commit()
-        cur.execute(u'select id from quotes where (quote ="{0}")'.format(quote))
+
+        #add the quote if it doesn't exist
+        cur.execute(u'select id from quotes where (quote = "{0}")'.format(quote))
         rows = cur.fetchall()
-        if len(rows) == 0:
+        if len(rows) != 0:
+            qid = rows[0][0]
+        else:
             cur.execute(u"insert into quotes (quote) values (?)", [quote])
             qid = cur.lastrowid
+            self.con.commit()
+
+        #add the connection if it doesn't exist
+        cur.execute(u'select * from connections where (qid = ? and tid = ?)', (qid, tid))
+        rows = cur.fetchall()
+        if len(rows) != 0:
+            return "The exact quote already exists."
+        else:
             cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
             self.con.commit()
             return 'Added a new quote to the tag "{0}".'.format(tag)
-        else:
-            if tagexists:
-                return "The exact quote already exists."
-            else:
-                qid = rows[0][0]
-                cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
-                self.con.commit()
-                return 'Added a new tag to the quote.'
+
 

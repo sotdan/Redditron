@@ -87,12 +87,13 @@ class Redditron(irc.Bot):
 
 
     def checkforspam(self, input):
-        if (time.time() - self.stack[0]) < 100:
+        if (time.time() - self.stack[0]) < 200:
             functions.leave(self, input)
             return False
         else:
-            self.stack.append(time.time())
-            self.stack = self.stack[-6:]
+            if not input.priv:
+                self.stack.append(time.time())
+                self.stack = self.stack[-6:]
             return True
 
     def checkforvarioustriggers(self, input, origin, msg, args):
@@ -107,7 +108,7 @@ class Redditron(irc.Bot):
             if self.nick in msg:
                 if self.checkforspam(input):
                     functions.stfu(self,input)
-        elif re.match('(yo|dear|h(ai|ello|ey(a)?|i))\s'+ self.nick, msg, re.I):
+        elif re.match('(yo|dear|h(ai(l)?|ello|ey(a)?|i))\s'+ self.nick, msg, re.I):
             if self.checkforspam(input):
                 functions._greet(self,input)
         elif nickmatch or input.priv:
@@ -129,7 +130,7 @@ class Redditron(irc.Bot):
                 if c == cmd:
                     try: responded = self.commands[c](self,input)
                     except Exception, e:
-                        self.error(origin)
+                        self.error(input.source)
                     break
             for c in self.admincommands:
                 if c == cmd:
@@ -214,7 +215,6 @@ class Redditron(irc.Bot):
             if isinstance(msg,str):
                 self.msg(ch,msg)
             else: 
-                print 'WARNING - notastring: ',msg
                 self.msg(ch,str(msg))
         else: print msg
         if cooldown and self.freespeech:

@@ -360,8 +360,8 @@ def hint(redditron, input):
     '''
     posts a random sample of tags
     '''
-    sample = redditron.responses.getsample()
-    redditron.say(input.source, "AMA about "+sample+", etc..")
+    sample = redditron.responses.getsample(7)
+    redditron.say(input.source, "AMA about "+sample+", and more.")
 hint.commands=['tip']
 
 def stats(redditron, input):
@@ -484,7 +484,7 @@ def leave(redditron,input):
     redditron.logger(strftime("%H:%M:%S"))
     redditron.logger("parting "+chan+" due to spam")
     redditron.partch(chan)
-    time.sleep(600)
+    time.sleep(100)
     redditron.joinch(chan)
 
 
