@@ -242,11 +242,13 @@ def getquotes(redditron, input):
         redditron.say(input.source,_posttopastebin(redditron.responses.getstring()))
     elif len(msg) >= 2:
         msg = msg[1:]
-        tag = ' '.join(msg)
-        a,b = redditron.responses.getresponses(tag.rstrip())
-        if a == True:
-            redditron.say(input.source,_posttopastebin(b))
-        else: redditron.say(input.source,b)
+        tag = ' '.join(msg).rstrip()
+        quotes = redditron.responses.getresponses(tag)
+        if len(quotes)>0:
+            response= str(len(quotes))+' quotes about %s:\n\n' % tag.upper()
+            response+=('\n\n').join(quotes)
+            redditron.say(input.source,_posttopastebin(response))
+        else: redditron.say(input.source,"No quotes about '%s'" % tag)
 getquotes.commands=['getquotes']
 
 def twitterpost(redditron, input):
@@ -462,6 +464,18 @@ def randomquote(redditron, input):
     redditron.logger('posting random response: '+response)
     redditron.postresponse(input.source,response)
 randomquote.commands=['random']
+
+def fixdb(redditron, input):
+    '''
+    Runs some database maintenance tasks
+    '''
+    response=redditron.responses.fixdb()
+    redditron.logger(strftime("%H:%M:%S"))
+    redditron.logger('ran fixes: '+response)
+    redditron.postresponse(input.source,response)
+fixdb.commands=['fixdb']
+fixdb.admin=1
+
 
 def detecttrigger(redditron, input):
     detected, response = redditron.responses.detect(input.strip())

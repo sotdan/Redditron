@@ -72,16 +72,45 @@ class Responses(object):
         cur = self.con.cursor()
         cur.execute('select id from tags where (tag = "{0}")'.format(msg))
         rows = cur.fetchall()
+        quotes = []
         if len(rows) >0:
-            quotes = []
             tid = rows[0][0]
             cur.execute('select qid from connections where (tid = {0})'.format(tid))
             for row in cur.fetchall():
                 cur.execute('select quote from quotes where (id = {0})'.format(row[0]))
                 quotes.append(cur.fetchall()[0][0])
-            response=len(quotes)+' quotes about %s:\n\n' % msg.upper()
-            return response+('\n\n').join(quotes)
-        else: return False, "No quotes about '%s'" % msg
+        return quotes
+
+    def fixdb(self):
+        response=""
+        cur = self.con.cursor()
+
+
+        #find tags that are not lowercase and fix them
+        cur.execute("select * from tags")
+        tagtuples = cur.fetchall()
+        notlower=[]
+        for tagtuple in tagtuples:
+            if not str(tagtuple[1]).islower():
+                notlower.append(tagtuple)
+        response+= "tags that are not lowercase: "+str(len(notlower))+'\n'
+        response+=", ".join([t[1] for t in notlower])+'\n'
+        cee=0
+        for nl in notlower:
+            nll = nl[1].lower()
+            for tagtuple in tagtuples:
+                if nll == tagtuple[1]:
+                    cur.execute("select qid from connections where (tid = {0})".format(nl[0]))
+                    targetqids = cur.fetchall()
+                    for targetqid in targetqids:
+                        cur.execute("select * from connections where (tid = {0} and qid = {1})".format(tagtuple[0], targetqid))
+                        if cur.fetchall() > 0:
+                            cee+=1
+
+        response+='Need to move: '+str(cee)
+        return response
+
+
 
     def randomquote(self):
         cur = self.con.cursor()
@@ -94,7 +123,7 @@ class Responses(object):
         '''
 
         if isinstance(tag, unicode):
-            pass
+            tag = tag.lower()
         else: tag=unicode(tag.lower())
         if isinstance(quote, unicode):
             pass

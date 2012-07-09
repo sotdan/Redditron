@@ -87,14 +87,15 @@ class Redditron(irc.Bot):
 
 
     def checkforspam(self, input):
-        if (time.time() - self.stack[0]) < 200:
-            functions.leave(self, input)
-            return False
+        if input.priv: return True
         else:
-            if not input.priv:
+            if (time.time() - self.stack[0]) < 200:
+                functions.leave(self, input)
+                return False
+            else:
                 self.stack.append(time.time())
                 self.stack = self.stack[-6:]
-            return True
+                return True
 
     def checkforvarioustriggers(self, input, origin, msg, args):
         nickmatch = re.match(self.nick.lower()+'(:|,|\s)', msg, re.I)
@@ -108,7 +109,7 @@ class Redditron(irc.Bot):
             if self.nick in msg:
                 if self.checkforspam(input):
                     functions.stfu(self,input)
-        elif re.match('(yo|dear|h(ai(l)?|ello|ey(a)?|i))\s'+ self.nick, msg, re.I):
+        elif re.match('(wb|yo|dear|h(ai(l)?|ello|ey(a)?|i))\s'+ self.nick, msg, re.I):
             if self.checkforspam(input):
                 functions._greet(self,input)
         elif nickmatch or input.priv:
@@ -138,6 +139,7 @@ class Redditron(irc.Bot):
                         try: responded=self.admincommands[c](self,input)
                         except Exception, e:
                             self.error(input.source)
+                            #self.say(input.source,'error.')
                     else:
                         self.say(input.source,'Only botadmins can do that.')
                     break
