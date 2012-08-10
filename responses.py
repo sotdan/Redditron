@@ -23,28 +23,28 @@ class Responses(object):
     def getsample(self, amount):
         '''returns a list with a random sample of tags.'''
         cur = self.con.cursor()
-        cur.execute("select tag from tags")
-        return (', ').join([row[0] for row in random.sample(cur.fetchall(), amount)])
+        cur.execute("select tag from tags order by random() limit ?", (amount,))
+        return (', ').join([row[0] for row in cur.fetchall()])
 
     def stats(self):
         cur = self.con.cursor()
-        cur.execute("select id from tags")
+        cur.execute("select count(id) from tags")
         tags = cur.fetchall()
-        cur.execute("select id from quotes")
+        cur.execute("select count(id) from quotes")
         q = cur.fetchall()
-        return 'There are '+str(len(tags))+' tags and '+str(len(q))+' quotes.'
+        return 'There are '+str(tags[0][0])+' tags and '+str(q)+' quotes.'
 
     def getquotefor(self,msg):
         '''
         returns a random quote for a tag
         '''
         cur = self.con.cursor()
-        cur.execute('select id from tags where (tag = "{0}")'.format(msg))
+        cur.execute('select id from tags where (tag = ?)', (msg,))
         tid = cur.fetchall()[0][0]
-        cur.execute('select qid from connections where (tid = {0})'.format(tid))
+        cur.execute('select qid from connections where (tid = ?)', (tid,))
         qids = [row[0] for row in cur.fetchall()]
         qid = random.choice(qids)
-        cur.execute("select quote from quotes where (id = {0})".format(qid))
+        cur.execute("select quote from quotes where (id = ?)", (qid,))
         return str(cur.fetchall()[0][0])
 
     def detect(self, msg):
@@ -59,25 +59,25 @@ class Responses(object):
                 detected.append(t)
         if len(detected)>0:
             key = random.choice(detected)
-            cur.execute('select qid from connections where (tid = {0})'.format(key['id']))
+            cur.execute('select qid from connections where (tid = ?)', (key['id'],))
             qids = [row[0] for row in cur.fetchall()]
             if len(qids)>0:
                 qid = random.choice(qids)
-                cur.execute('select quote from quotes where (id = {0})'.format(qid))
+                cur.execute('select quote from quotes where (id = ?)', (qid,))
                 response = str(cur.fetchall()[0][0])
         return [d['tag'] for d in detected], response
 
     def getresponses(self, msg):
         '''Returns all the responses for a tag'''
         cur = self.con.cursor()
-        cur.execute('select id from tags where (tag = "{0}")'.format(msg))
+        cur.execute('select id from tags where (tag = ?)', (msg,))
         rows = cur.fetchall()
         quotes = []
         if len(rows) >0:
             tid = rows[0][0]
-            cur.execute('select qid from connections where (tid = {0})'.format(tid))
+            cur.execute('select qid from connections where (tid = ?)', (tid,))
             for row in cur.fetchall():
-                cur.execute('select quote from quotes where (id = {0})'.format(row[0]))
+                cur.execute('select quote from quotes where (id = ?)', (row[0],))
                 quotes.append(cur.fetchall()[0][0])
         return quotes
 
@@ -100,10 +100,10 @@ class Responses(object):
             nll = nl[1].lower()
             for tagtuple in tagtuples:
                 if nll == tagtuple[1]:
-                    cur.execute("select qid from connections where (tid = {0})".format(nl[0]))
+                    cur.execute("select qid from connections where (tid = ?)", (nl[0],))
                     targetqids = cur.fetchall()
                     for targetqid in targetqids:
-                        cur.execute("select * from connections where (tid = {0} and qid = {1})".format(tagtuple[0], targetqid))
+                        cur.execute("select * from connections where (tid = ? and qid = ?)", (tagtuple[0], targetqid))
                         if cur.fetchall() > 0:
                             cee+=1
 
@@ -131,22 +131,22 @@ class Responses(object):
         cur = self.con.cursor()
 
         #add the tag if it doesn't exist
-        cur.execute(u'select id from tags where (tag = "{0}")'.format(tag))
+        cur.execute(u'select id from tags where (tag = ?)', (tag,))
         rows = cur.fetchall()
         if len(rows) != 0:
             tid = rows[0][0]
         else:
-            cur.execute(u'insert into tags (tag) values ("{0}")'.format(tag))
+            cur.execute(u'insert into tags (tag) values (?)', (tag,))
             tid = cur.lastrowid
             self.con.commit()
 
         #add the quote if it doesn't exist
-        cur.execute(u'select id from quotes where (quote = "{0}")'.format(quote))
+        cur.execute(u'select id from quotes where (quote = ?)', (quote,))
         rows = cur.fetchall()
         if len(rows) != 0:
             qid = rows[0][0]
         else:
-            cur.execute(u"insert into quotes (quote) values (?)", [quote])
+            cur.execute(u"insert into quotes (quote) values (?)", ([quote],))
             qid = cur.lastrowid
             self.con.commit()
 
@@ -156,8 +156,6 @@ class Responses(object):
         if len(rows) != 0:
             return "The exact quote already exists."
         else:
-            cur.execute('insert or ignore into connections (tid, qid) values ({0}, {1})'.format(tid,qid))
+            cur.execute('insert or ignore into connections (tid, qid) values (?, ?)', (tid, qid))
             self.con.commit()
             return 'Added a new quote to the tag "{0}".'.format(tag)
-
-
