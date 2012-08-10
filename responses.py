@@ -29,10 +29,10 @@ class Responses(object):
     def stats(self):
         cur = self.con.cursor()
         cur.execute("select count(id) from tags")
-        tags = cur.fetchall()
+        tag_count = cur.fetchall()[0][0]
         cur.execute("select count(id) from quotes")
-        q = cur.fetchall()
-        return 'There are '+str(tags[0][0])+' tags and '+str(q)+' quotes.'
+        q_count = cur.fetchall()[0][0]
+        return 'There are '+str(tag_count)+' tags and '+str(q_count)+' quotes.'
 
     def getquotefor(self,msg):
         '''
