@@ -103,7 +103,7 @@ def partchan(redditron,input):
         redditron.logger(strftime("%H:%M:%S"))
         redditron.logger("parting "+msg[1])
         redditron.partch(msg[1])
-partchan.commands=['partchan']
+partchan.commands=['part']
 partchan.admin=1
 
 def joinchan(redditron,input):
@@ -115,7 +115,7 @@ def joinchan(redditron,input):
         redditron.joinch(msg[1])
     else:
         redditron.say(input.source, 'yer doin it rong')
-joinchan.commands=['joinchan']
+joinchan.commands=['join']
 joinchan.admin=1
 
 def selfdestruct(redditron, input):
@@ -238,18 +238,16 @@ def getquotes(redditron, input):
     '''
     msg = input.split()
     if len(msg) ==1:
-        redditron.say(input.source,'Working...')
-        redditron.say(input.source,_posttopastebin(redditron.responses.getstring()))
+        redditron.say(input.source,'Needs a tag.')
     elif len(msg) >= 2:
+        withids = 'getqids' in msg[0]
         msg = msg[1:]
         tag = ' '.join(msg).rstrip()
-        quotes = redditron.responses.getresponses(tag)
-        if len(quotes)>0:
-            response= str(len(quotes))+' quotes about %s:\n\n' % tag.upper()
-            response+=('\n\n').join(quotes)
-            redditron.say(input.source,_posttopastebin(response))
+        quotestr = redditron.responses.getquotes(tag, withids)
+        if quotestr:
+            redditron.say(input.source,_posttopastebin(quotestr))
         else: redditron.say(input.source,"No quotes about '%s'" % tag)
-getquotes.commands=['getquotes']
+getquotes.commands=['getquotes', 'getqids']
 
 def twitterpost(redditron, input):
     '''
@@ -354,9 +352,10 @@ def gettags(redditron, input):
     '''
     posts a list of all the triggers to pastebin
     '''
-    link = _posttopastebin(redditron.responses.getkeys())
+    withids = 'gettids' in input.source
+    link = _posttopastebin(redditron.responses.getkeys(withids))
     redditron.say(input.source, link)
-gettags.commands=['tags','triggers']
+gettags.commands=['tags','triggers','gettids']
 
 def hint(redditron, input):
     '''

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import random, sys, unicodedata, sqlite3
+import random, sys, unicodedata, sqlite3, re
 
 def decode(bytes):
     try: text = bytes.decode('utf-8')
@@ -10,15 +10,26 @@ def decode(bytes):
             text = bytes.decode('cp1252')
     return text
 
+def fits(needle, haystack):
+    #haystack = haystack.encode('ascii','ignore').strip()
+    rx = r'\b{0}'.format(needle)
+    rexp = re.compile(rx)
+    res = rexp.search(haystack)
+    return res is not None
+
 class Responses(object):
 
     def __init__(self):
         self.con = sqlite3.connect('rq.db')
+        self.con.create_function('fits', 2, fits)
 
-    def getkeys(self):
+    def getkeys(self, withids):
         cur = self.con.cursor()
-        cur.execute("select tag from tags")
-        return ('\n').join([row[0] for row in cur.fetchall()])
+        cur.execute("select id, tag from tags")
+        if withids:
+            return ('\n').join([str(row[0])+'. '+row[1] for row in cur.fetchall()])
+        else:
+            return ('\n').join([row[1] for row in cur.fetchall()])
 
     def getsample(self, amount):
         '''returns a list with a random sample of tags.'''
@@ -34,52 +45,48 @@ class Responses(object):
         q_count = cur.fetchall()[0][0]
         return 'There are '+str(tag_count)+' tags and '+str(q_count)+' quotes.'
 
-    def getquotefor(self,msg):
+    def getquotefor(self, tag):
         '''
-        returns a random quote for a tag
+        returns a random quote for a tag, or for a list of tags
         '''
         cur = self.con.cursor()
-        cur.execute('select id from tags where (tag = ?)', (msg,))
-        tid = cur.fetchall()[0][0]
-        cur.execute('select qid from connections where (tid = ?)', (tid,))
-        qids = [row[0] for row in cur.fetchall()]
-        qid = random.choice(qids)
-        cur.execute("select quote from quotes where (id = ?)", (qid,))
-        return str(cur.fetchall()[0][0])
+        tags = [tag] if (type(tag) == type("")) else tag
+        q = """select quote from 
+                quotes join connections on (quotes.id = connections.qid) 
+                join tags on (tags.id = connections.tid)
+                where tag in ({0}) 
+                order by random() limit 1""".format(",".join(["?" for _ in tag]))
+        cur.execute(q, tuple(tags))
+        quote = cur.fetchall()
+        if quote:
+            return str(quote[0][0])
+        else: return quote
 
     def detect(self, msg):
         '''checks if there are any triggers in a string'''
         cur = self.con.cursor()
-        cur.execute("select id, tag from tags")
-        tags = [dict(id= row[0],tag= row[1]) for row in cur.fetchall()]
-        response=""
-        detected=[]
-        for t in tags:
-            if t['tag']+' ' in ' '+msg.lower()+' ' or ' '+t['tag'] in ' '+msg.lower()+' ':
-                detected.append(t)
-        if len(detected)>0:
-            key = random.choice(detected)
-            cur.execute('select qid from connections where (tid = ?)', (key['id'],))
-            qids = [row[0] for row in cur.fetchall()]
-            if len(qids)>0:
-                qid = random.choice(qids)
-                cur.execute('select quote from quotes where (id = ?)', (qid,))
-                response = str(cur.fetchall()[0][0])
-        return [d['tag'] for d in detected], response
+        q = 'select tag from tags where FITS(tag, ?)'
+        cur.execute(q, (msg.lower(),))
+        tags = [tag for (tag,) in cur.fetchall()]
+        resp = self.getquotefor(tags)
+        return tags, resp
 
-    def getresponses(self, msg):
-        '''Returns all the responses for a tag'''
+    def getquotes(self, tag, withid):
+        '''Returns a string representation of all the responses for a tag'''
         cur = self.con.cursor()
-        cur.execute('select id from tags where (tag = ?)', (msg,))
+        cur.execute("""select quotes.id, quote from 
+                    quotes join connections on (quotes.id = connections.qid) 
+                    join tags on (tags.id = connections.tid)
+                    where tag = ?""", (tag,))
         rows = cur.fetchall()
-        quotes = []
-        if len(rows) >0:
-            tid = rows[0][0]
-            cur.execute('select qid from connections where (tid = ?)', (tid,))
-            for row in cur.fetchall():
-                cur.execute('select quote from quotes where (id = ?)', (row[0],))
-                quotes.append(cur.fetchall()[0][0])
-        return quotes
+        if rows:
+            response= str(len(rows))+' quotes about %s:\n\n' % tag.upper()
+            if withid:
+                response+=('\n\n').join([str(row[0])+". "+row[1] for row in rows])
+            else:
+                response+=('\n\n').join([row[1] for row in rows])
+            return response
+        else: return False
 
     def fixdb(self):
         response=""
@@ -111,11 +118,10 @@ class Responses(object):
         return response
 
 
-
     def randomquote(self):
         cur = self.con.cursor()
-        cur.execute("select quote from quotes")
-        return random.choice(cur.fetchall())[0]
+        cur.execute("select quote from quotes order by RANDOM() LIMIT 1")
+        return cur.fetchall()[0][0]
 
     def add(self, tag, quote):
         '''
@@ -146,7 +152,7 @@ class Responses(object):
         if len(rows) != 0:
             qid = rows[0][0]
         else:
-            cur.execute(u"insert into quotes (quote) values (?)", ([quote],))
+            cur.execute(u"insert into quotes (quote) values (?)", (quote,))
             qid = cur.lastrowid
             self.con.commit()
 
