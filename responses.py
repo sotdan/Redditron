@@ -12,9 +12,9 @@ def decode(bytes):
 
 def fits(needle, haystack):
     #haystack = haystack.encode('ascii','ignore').strip()
-    rx = r'\b{0}'.format(needle.lower())
+    rx = r'\b{0}'.format(needle)
     rexp = re.compile(rx)
-    res = rexp.search(haystack)
+    res = rexp.search(haystack.lower())
     return res is not None
 
 class Responses(object):
