@@ -12,7 +12,7 @@ def decode(bytes):
 
 def fits(needle, haystack):
     #haystack = haystack.encode('ascii','ignore').strip()
-    rx = r'\b{0}'.format(needle)
+    rx = r'\b{0}'.format(needle.lower())
     rexp = re.compile(rx)
     res = rexp.search(haystack)
     return res is not None
@@ -66,7 +66,7 @@ class Responses(object):
         '''checks if there are any triggers in a string'''
         cur = self.con.cursor()
         q = 'select tag from tags where FITS(tag, ?)'
-        cur.execute(q, (msg.lower(),))
+        cur.execute(q, (msg,))
         tags = [tag for (tag,) in cur.fetchall()]
         resp = self.getquotefor(tags)
         return tags, resp
