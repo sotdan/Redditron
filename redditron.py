@@ -38,8 +38,9 @@ class BotConfig(object):
         servers = conf.get('botconfig','servers').split(',')
         defaultserver = conf.getint('botconfig','defaultserver')
         server = self.pickaserver(servers, defaultserver)
-        self.host = server.strip().split('/')[0]
-        self.port = int(server.strip().split('/')[1])
+        server = server.strip().split('/')
+        self.host=server[0]
+        self.port = int(server[1])
         self.ident = conf.get('botconfig','ident')
         self.realname = conf.get('botconfig','realname')
         self.nspassword = conf.get('botconfig','password')

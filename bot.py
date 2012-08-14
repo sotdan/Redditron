@@ -94,7 +94,7 @@ class Redditron(irc.Bot):
                 return False
             else:
                 self.stack.append(time.time())
-                self.stack = self.stack[-6:]
+                self.stack = self.stack[-8:]
                 return True
 
     def checkforvarioustriggers(self, input, origin, msg, args):
