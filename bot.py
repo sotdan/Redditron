@@ -60,7 +60,7 @@ class Redditron(irc.Bot):
         # origin.sender = nick when PM, else chan
         bytes, event, args = args[0], args[1], args[2:]
         msg = decode(bytes)
-        if event =='KICK':
+        if event =='KICK' and args[1] == self.nick:
             self.logger('KICKED from '+args[0])
             self.kicked = True
             self.joinch(args[0])
@@ -85,9 +85,8 @@ class Redditron(irc.Bot):
                 input = self.input(origin, msg, args)
                 self.checkforvarioustriggers(input, origin, msg, args)
 
-
     def checkforspam(self, input):
-        if input.priv: return True
+        if input.priv or input.source =="#reddit": return True
         else:
             if (time.time() - self.stack[0]) < 200:
                 functions.leave(self, input)
@@ -193,7 +192,7 @@ class Redditron(irc.Bot):
             r=response.split(lit)
             self.postresponse(source, lit.join(r[:len(r)/2])+lit.strip())
             self.postresponse(source, lit.join(r[len(r)/2:]))
-        if len(response) > 100:
+        if len(response) > 70:
             if '? ' in response:
                 splitintwo(response, '? ')
             elif '; ' in response:
@@ -210,14 +209,11 @@ class Redditron(irc.Bot):
             waitfor = 0
         else:
             if self.freespeech: waitfor = 2+len(msg)/(self.waitfactor)
-            else: waitfor = len(msg)/(4*self.waitfactor)
+            else: waitfor = 1+len(msg)/(4*self.waitfactor)
         self.logger('waiting for '+str(waitfor)+' second(s) before responding')
         time.sleep(waitfor)
         if self.connected:
-            if isinstance(msg,str):
-                self.msg(ch,msg)
-            else: 
-                self.msg(ch,str(msg))
+            self.msg(ch,msg)
         else: print msg
         if cooldown and self.freespeech:
             self.startcooldown()

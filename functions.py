@@ -57,7 +57,7 @@ def _greet(redditron,input):
     if input.priv:
         reply= random.choice(redditron.config.greetings)
     else:
-        reply=random.choice(redditron.config.greetings)[:-1]+', '+input.nick
+        reply=random.choice(redditron.config.greetings)[:-1]+', '+input.nick+'!'
     redditron.say(input.source,reply,True)
 
 def fallback(redditron, input):
@@ -103,7 +103,7 @@ def partchan(redditron,input):
         redditron.logger(strftime("%H:%M:%S"))
         redditron.logger("parting "+msg[1])
         redditron.partch(msg[1])
-partchan.commands=['partchan']
+partchan.commands=['part']
 partchan.admin=1
 
 def joinchan(redditron,input):
@@ -115,7 +115,7 @@ def joinchan(redditron,input):
         redditron.joinch(msg[1])
     else:
         redditron.say(input.source, 'yer doin it rong')
-joinchan.commands=['joinchan']
+joinchan.commands=['join']
 joinchan.admin=1
 
 def selfdestruct(redditron, input):
@@ -230,7 +230,7 @@ def ageofconsent(redditron,input):
     if not input.priv:
         msg=input.nick+', '+msg[0].lower()+msg[1:]
     redditron.say(input.source,msg)
-ageofconsent.commands=['aoc','ageofconsent']
+ageofconsent.commands=['aoc']
 
 def getquotes(redditron, input):
     '''
@@ -238,106 +238,16 @@ def getquotes(redditron, input):
     '''
     msg = input.split()
     if len(msg) ==1:
-        redditron.say(input.source,'Working...')
-        redditron.say(input.source,_posttopastebin(redditron.responses.getstring()))
+        redditron.say(input.source,'Needs a tag.')
     elif len(msg) >= 2:
+        withids = 'getqids' in msg[0]
         msg = msg[1:]
         tag = ' '.join(msg).rstrip()
-        quotes = redditron.responses.getresponses(tag)
-        if len(quotes)>0:
-            response= str(len(quotes))+' quotes about %s:\n\n' % tag.upper()
-            response+=('\n\n').join(quotes)
-            redditron.say(input.source,_posttopastebin(response))
+        quotestr = redditron.responses.getquotes(tag, withids)
+        if quotestr:
+            redditron.say(input.source,_posttopastebin(quotestr))
         else: redditron.say(input.source,"No quotes about '%s'" % tag)
-getquotes.commands=['getquotes']
-
-def twitterpost(redditron, input):
-    '''
-    Posts a shitload of tweets for a hashtag to pastebin.
-    '''
-    try: import twitter
-    except:
-        redditron.say(input.source,"I'm missing the twitter module")
-        return
-    msg = input.split()[1:]
-    tag = ' '.join(msg)
-    redditron.logger(strftime("%H:%M:%S")+' - gettin posts for '+tag)
-    client = twitter.Api()
-    print 'working'
-    latest_posts=[]
-    for x in range(1,10):
-        print 'getting page '+str(x)
-        latest_posts.append(client.GetSearch(tag, per_page= 100, page=x))
-    print 'got '+str(len(latest_posts))+' posts'
-    result=''
-    for p in latest_posts:
-        for l in p:
-            result+=l.text+'\n\n'
-    redditron.say(input.source, _posttopastebin(result))
-#twitter.commands=['twitterpost']
-
-def getrandomtwitterpost2(redditron,input):
-    '''trying to remove the python-twitter dependency'''
-    url  = 'http://search.twitter.com/search.json'
-    json = redditron._FetchUrl(url, parameters=parameters)
-    url = redditron._BuildUrl(url, extra_params=extra_params)
-    encoded_post_data = redditron._EncodePostData(post_data)
-    http_handler  = redditron._urllib.HTTPHandler(debuglevel=_debug)
-    https_handler = redditron._urllib.HTTPSHandler(debuglevel=_debug)
-
-    opener = redditron._urllib.OpenerDirector()
-    opener.add_handler(http_handler)
-    opener.add_handler(https_handler)
-    response = opener.open(url, encoded_post_data)
-    url_data = redditron._DecompressGzippedResponse(response)
-    opener.close()
-    data = redditron._ParseAndCheckTwitter(json)
-
-
-def getrandomtwitterpost(redditron, input):
-    '''
-    Spams 5 tweets for a hashtag.
-    '''
-    try: import twitter
-    except:
-        redditron.say(input.source,"I'm missing the twitter module")
-        return
-    msg = input.split()[1:]
-    tag = ' '.join(msg)
-    redditron.logger(strftime("%H:%M:%S")+' - gettin posts for '+tag)
-    client = twitter.Api()
-    try:
-        latest_posts = client.GetSearch(tag)
-        for l in latest_posts[:5]:
-            redditron.say(input.source, str(l.text))
-            time.sleep(7)
-    except:
-        redditron.say(input.source,"Twitter error.")
-getrandomtwitterpost.commands=['twitter']
-
-def gettweets(redditron, input):
-    '''
-    Spams 5 tweets for a user.
-    '''
-    try: import twitter
-    except:
-        redditron.say(input.source,"I'm missing the twitter module")
-        return
-    msg = input.split()
-    print msg
-    msg = msg[1]
-    redditron.logger(strftime("%H:%M:%S")+' - gettin posts of '+msg)
-    client = twitter.Api()
-    try:
-        print msg
-        latest_posts = client.GetUserTimeline(screen_name=msg)
-        for l in latest_posts[:5]:
-            print l.text
-            redditron.say(input.source, str(l.text))
-            time.sleep(7)
-    except:
-        redditron.say(input.source,"Twitter error.")
-gettweets.commands=['tweets']
+getquotes.commands=['getquotes', 'getqids']
 
 def changemode(redditron, input):
     '''
@@ -352,11 +262,60 @@ changemode.admin=1
 
 def gettags(redditron, input):
     '''
-    posts a list of all the triggers to pastebin
+    posts a list of all the triggers to pastebin, or gives you the tags for a quote ID.
     '''
-    link = _posttopastebin(redditron.responses.getkeys())
-    redditron.say(input.source, link)
-gettags.commands=['tags','triggers']
+    msg = input.split()
+    withids = 'gettids' in msg[0]
+    if len(msg) == 2:
+        try: 
+            qid = int(msg[1])
+            tags = redditron.responses.gettagsforquote(qid)
+            if tags:
+                if len(tags) > 1:
+                    resp = "The tags for quote no. "+msg[1]+" are: "+", ".join(tags)
+                else:
+                    resp = "The tag for quote no. "+msg[1]+" is: "+tags[0]
+            else: resp = "No tags for that quote ID."
+        except: resp = "The quote ID needs to be a number."
+    elif len(msg) == 1:
+        resp = _posttopastebin(redditron.responses.getkeys(withids))
+    else: resp = random.choice(redditron.config.fallbackr)
+    redditron.say(input.source, resp)
+gettags.commands=['tags','triggers','gettids']
+
+def getquote(redditron, input):
+    '''
+    says the quote for an ID.
+    '''
+    msg = input.split()
+    if len(msg) == 2:
+        try:
+            qid = int(msg[1])
+            quote = redditron.responses.getquote(qid)
+            if quote:
+                resp= quote
+            else: resp = "No quote for that ID."
+        except: resp = "The quote ID needs to be a number."
+    else: resp = "Needs a quote ID."
+    redditron.say(input.source, resp)
+getquote.commands=['getquote']
+
+def delquote(redditron, input):
+    '''
+    deletes a quote. needs the id of the quote.
+    '''
+    msg = input.split()
+    if len(msg) == 2:
+        try:
+            qid = int(msg[1])
+            resp, quote = redditron.responses.delquote(qid)
+            if quote:
+                redditron.say(input.source, "Deleted quote: "+quote)
+        except: resp = "The quote ID needs to be a number."
+    else: resp = "Needs a quote ID."
+    redditron.say(input.source, resp)
+delquote.commands=['delquote']
+delquote.admin=1
 
 def hint(redditron, input):
     '''
@@ -371,7 +330,7 @@ def stats(redditron, input):
     Spams some quote-database statistics.
     '''
     redditron.say(input.source, redditron.responses.stats())
-stats.commands=['stats','getstats']
+stats.commands=['stats']
 
 def getuptime(redditron, input):
     seconds = time.time() - redditron.starttime
@@ -387,7 +346,9 @@ def posthelpmsg(redditron,input):
     commanddict=redditron.commands
     if len(msg)==1:
         _greet(redditron,input)
+        redditron.say(input.source, 'I am a robot and a proud redditor!')
         redditron.say(input.source, 'List of commands: '+', '.join(commanddict.keys()))
+        redditron.say(input.source, 'Type '+redditron.nick+': help *command* to get some help with my commands!')
     else:
         cmd=(' ').join(msg[1:])
         msg=''
@@ -453,7 +414,7 @@ def fucksrstk(redditron,input):
     else:
         response='usernames are just one word, silly'
     redditron.say(input.source,response)
-fucksrstk.commands=['isasrser','srscheck']
+fucksrstk.commands=['srscheck']
 
 def randomquote(redditron, input):
     '''
@@ -463,19 +424,7 @@ def randomquote(redditron, input):
     redditron.logger(strftime("%H:%M:%S"))
     redditron.logger('posting random response: '+response)
     redditron.postresponse(input.source,response)
-randomquote.commands=['random']
-
-def fixdb(redditron, input):
-    '''
-    Runs some database maintenance tasks
-    '''
-    response=redditron.responses.fixdb()
-    redditron.logger(strftime("%H:%M:%S"))
-    redditron.logger('ran fixes: '+response)
-    redditron.postresponse(input.source,response)
-fixdb.commands=['fixdb']
-fixdb.admin=1
-
+randomquote.commands=['random','r']
 
 def detecttrigger(redditron, input):
     detected, response = redditron.responses.detect(input.strip())
