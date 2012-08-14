@@ -119,7 +119,7 @@ class Responses(object):
         '''
         cur = self.con.cursor()
         tags = [tag] if (type(tag) == type("")) else tag
-        q = """select quote from 
+        q = """select quotes.id, quote from 
                 quotes join connections on (quotes.id = connections.qid) 
                 join tags on (tags.id = connections.tid)
                 where tag in ({0}) 
@@ -127,7 +127,7 @@ class Responses(object):
         cur.execute(q, tuple(tags))
         quote = cur.fetchall()
         if quote:
-            return quote[0][0]
+            return dict(id = quote[0][0], quote=quote[0][1])
         else: return "This is an orphaned tag."
 
     def detect(self, msg):
@@ -157,9 +157,12 @@ class Responses(object):
         else: return False
 
     def randomquote(self):
+        '''
+        returns a tuple with a random quote and its ID
+        '''
         cur = self.con.cursor()
-        cur.execute("select quote from quotes order by RANDOM() LIMIT 1")
-        return cur.fetchall()[0][0]
+        cur.execute("select id, quote from quotes order by RANDOM() LIMIT 1")
+        return cur.fetchall()[0]
 
     def add(self, tag, quote):
         '''

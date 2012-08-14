@@ -392,7 +392,8 @@ def quotegasm(redditron,input):
     if msg[0] == 'paulgasm':
         for x in range(0,y):
             q=redditron.responses.getquotefor('ron paul')
-            redditron.postresponse(input.source,q)
+            redditron.postresponse(input.source,q['quote'])
+            redditron.logger('responding with quote no. '+str(q['id']))
 quotegasm.commands=['paulgasm']
 
 def fucksrstk(redditron,input):
@@ -422,22 +423,20 @@ def randomquote(redditron, input):
     '''
     response=redditron.responses.randomquote()
     redditron.logger(strftime("%H:%M:%S"))
-    redditron.logger('posting random response: '+response)
-    redditron.postresponse(input.source,response)
-randomquote.commands=['random','r']
+    redditron.logger('posting random quote: no. '+str(response[0]))
+    redditron.postresponse(input.source,response[1])
+randomquote.commands=['random']
 
 def detecttrigger(redditron, input):
     detected, response = redditron.responses.detect(input.strip())
-    if response == 'error':
-        redditron.logger(response)
+    if len(detected)>0:
+        redditron.logger(strftime("%H:%M:%S"))
+        redditron.logger('detected: '+(', ').join(detected))
+        redditron.logger('responding with quote no. '+str(response['id']))
+        redditron.postresponse(input.source, response['quote'])
+        return True
     else:
-        if len(detected)>0:
-            redditron.logger(strftime("%H:%M:%S"))
-            redditron.logger('detected: '+(', ').join(detected))
-            redditron.logger('response: '+response)
-            redditron.postresponse(input.source, response)
-            return True
-    return False
+        return False
 
 def leave(redditron,input):
     reply= random.choice(redditron.config.spamresponses)
