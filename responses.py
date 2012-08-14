@@ -45,6 +45,74 @@ class Responses(object):
         q_count = cur.fetchall()[0][0]
         return 'There are '+str(tag_count)+' tags and '+str(q_count)+' quotes.'
 
+    def delorphantags(self):
+        '''
+        finds and deletes tags that are not associated with any quotes
+        '''
+        cur = self.con.cursor()
+        q= '''
+           select tags.id, tags.tag, count(connections.id) as c 
+           from tags left join connections on (connections.tid = tags.id) 
+           group by tags.id having c = 0;
+           '''
+        cur.execute(q)
+        rows = cur.fetchall()
+        tags = [tag[1] for tag in rows]
+        tids = [tag[0] for tag in rows]
+        if tids:
+            q = """
+                delete from 
+                tags where id in ({0})""".format(",".join(["?" for _ in tids]))
+            cur.execute(q, tuple(tids))
+            self.con.commit()
+        return tags
+
+    def gettagsforquote(self, qid):
+        '''
+        returns a list of tags for a qid
+        '''
+        cur=self.con.cursor()
+        q = '''select tag from
+               tags where id in
+               (select tid from connections
+                where qid = ?)
+            '''
+        cur.execute(q, (qid,))
+        rows = cur.fetchall()
+        if rows:
+            return [row[0] for row in rows]
+        else: return rows
+
+    def getquote(self, qid):
+        '''
+        returns the quote for a quote id
+        '''
+        cur = self.con.cursor()
+        cur.execute("select quote from quotes where id = ?", (qid,))
+        rows = cur.fetchall()
+        if rows:
+            return rows[0][0]
+        else: return rows
+
+    def delquote(self, qid):
+        '''
+        deletes a quote
+        '''
+        cur = self.con.cursor()
+        quote = self.getquote(qid)
+        if quote:
+            #delete the quote
+            cur.execute("delete from quotes where id = ?", (qid,))
+            #delete its connections
+            cur.execute("delete from connections where qid = ?", (qid,))
+            self.con.commit()
+            resp = "Deleted quote no. "+str(qid)+"."
+            deltags = self.delorphantags()
+            if deltags:
+                resp+=" Deleted the tags: "+", ".join(deltags)
+        else: resp = "There is no quote for that ID."
+        return resp, quote
+            
     def getquotefor(self, tag):
         '''
         returns a random quote for a tag, or for a list of tags
@@ -55,12 +123,12 @@ class Responses(object):
                 quotes join connections on (quotes.id = connections.qid) 
                 join tags on (tags.id = connections.tid)
                 where tag in ({0}) 
-                order by random() limit 1""".format(",".join(["?" for _ in tag]))
+                order by random() limit 1""".format(",".join(["?" for _ in tags]))
         cur.execute(q, tuple(tags))
         quote = cur.fetchall()
         if quote:
-            return str(quote[0][0])
-        else: return quote
+            return quote[0][0]
+        else: return "This is an orphaned tag."
 
     def detect(self, msg):
         '''checks if there are any triggers in a string'''
@@ -87,36 +155,6 @@ class Responses(object):
                 response+=('\n\n').join([row[1] for row in rows])
             return response
         else: return False
-
-    def fixdb(self):
-        response=""
-        cur = self.con.cursor()
-
-
-        #find tags that are not lowercase and fix them
-        cur.execute("select * from tags")
-        tagtuples = cur.fetchall()
-        notlower=[]
-        for tagtuple in tagtuples:
-            if not str(tagtuple[1]).islower():
-                notlower.append(tagtuple)
-        response+= "tags that are not lowercase: "+str(len(notlower))+'\n'
-        response+=", ".join([t[1] for t in notlower])+'\n'
-        cee=0
-        for nl in notlower:
-            nll = nl[1].lower()
-            for tagtuple in tagtuples:
-                if nll == tagtuple[1]:
-                    cur.execute("select qid from connections where (tid = ?)", (nl[0],))
-                    targetqids = cur.fetchall()
-                    for targetqid in targetqids:
-                        cur.execute("select * from connections where (tid = ? and qid = ?)", (tagtuple[0], targetqid))
-                        if cur.fetchall() > 0:
-                            cee+=1
-
-        response+='Need to move: '+str(cee)
-        return response
-
 
     def randomquote(self):
         cur = self.con.cursor()
