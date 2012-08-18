@@ -323,7 +323,7 @@ def hint(redditron, input):
     '''
     sample = redditron.responses.getsample(7)
     redditron.say(input.source, "AMA about "+sample+", and more.")
-hint.commands=['tip']
+hint.commands=['tip','hint']
 
 def stats(redditron, input):
     '''
